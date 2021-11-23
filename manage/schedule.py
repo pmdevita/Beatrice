@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from util.timer import Timer
 import dateparser
 import platform
+from util import member_to_mention
 
 
 class Alarm:
@@ -35,7 +36,7 @@ class Schedule(commands.Cog):
     @commands.command("schedule", aliases=["sched"])
     async def add_alarm(self, ctx, time_string, *args):
         message = None
-        user_mention = await self.discord.utils.member_to_mention(ctx.author)
+        user_mention = await member_to_mention(ctx.author)
         if len(args) > 0:
             message = args[0]
 

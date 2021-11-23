@@ -3,7 +3,7 @@ import nextcord.ext.commands as commands
 import configparser
 import logging
 
-from util.util import Utils
+from util import Utils
 
 config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split("#")[0].split(',')]})
 config.read("config.ini")
