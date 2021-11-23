@@ -51,9 +51,9 @@ class Schedule(commands.Cog):
 
         templates = ["Very well, I set an alarm for {}.", "Why should I have to keep watch for you? ({})", "Hmmph! ({})"]
 
-        fmt_string = "%B %-d at %-I:%M"
+        fmt_string = "%B %-d at %-I:%M %p"
         if platform.system() == "Windows":  # Bruh
-            fmt_string = "%B %d at %I:%M"
+            fmt_string = "%B %d at %I:%M %p"
         await ctx.send(choice(templates).format(date.strftime(fmt_string)))
 
     def delete_alarm(self, num):
