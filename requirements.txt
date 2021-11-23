@@ -1,0 +1,5 @@
+nextcord
+alive-progress
+bs4
+requests
+lxml
