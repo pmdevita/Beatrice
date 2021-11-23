@@ -3,6 +3,8 @@ import nextcord.ext.commands as commands
 import configparser
 import logging
 
+from util.util import Utils
+
 config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split("#")[0].split(',')]})
 config.read("config.ini")
 
@@ -15,6 +17,7 @@ extensions = config.getlist("general", "extensions")
 class DiscordBot(commands.Bot):
     async def on_ready(self):
         self.config = config
+        self.utils = Utils(self)
         print(f"Logged in as {self.user}")
         self.main_guild = self.guilds[0]
 

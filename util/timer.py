@@ -23,6 +23,8 @@ class Timer:
                     await asyncio.sleep(self._interval)
                 await self._callback(self._name, self._context, self)
                 self._is_first_call = False
+                if self._interval == 0:
+                    self._cancelled = True
         except Exception as ex:
             print(ex)
 

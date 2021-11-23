@@ -7,14 +7,15 @@ class Basic(commands.Cog):
     def __init__(self, discord):
         self.discord = discord
 
-    @commands.command("hi")
-    async def hello(self, ctx, *, member: nextcord.Member = None):
-        print("hi there")
-        member = member or ctx.author
+    @commands.command("hi", aliases=["hello", "hey", "howdy", "beatrice", "beako", "betty"])
+    async def hello(self, ctx, *args):
+        member = ctx.author
+        mentions = await self.discord.utils.find_mentions(args)
+        if mentions:
+            member = mentions[0]
 
         templates = ["Hmmmmm... hi {}.", "Yes, yes, hello {}.", "Hi {} I guess.", "I'm busy right now {}, shoo, shoo!"]
-
-        await ctx.send(choice(templates).format(member))
+        await ctx.send(choice(templates).format(member.nick))
 
     @commands.command(name="ping")
     async def ping(self, ctx: commands.Context):
