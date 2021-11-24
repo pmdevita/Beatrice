@@ -17,6 +17,9 @@ class TimerTask:
         if self.repeat:
             self.timer.schedule_task(self.time + self.repeat, self.callback, self.repeat)
 
+    def cancel(self):
+        self.timer.cancel(self)
+
 
 class Timer:
     def __init__(self, discord):
@@ -72,7 +75,7 @@ class Timer:
         self._balancing_task = asyncio.ensure_future(self._balance_tasks())
         return task
 
-    async def cancel(self, task):
+    def cancel(self, task):
         self.tasks.remove(task)
         self._tasks_dirty = True
         self._balancing_task = asyncio.ensure_future(self._balance_tasks())
