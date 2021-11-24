@@ -34,6 +34,10 @@ def run_aerich(config, args):
     elif command == "upgrade":
         func = upgrade
         func_args.append(app)
+    elif command == "downgrade":
+        func = downgrade
+        func_args.append(app)
+        func_args.append(args.delete)
     loop = asyncio.get_event_loop()
     loop.run_until_complete(func(*func_args))
     loop.close()
@@ -78,5 +82,11 @@ async def upgrade(config, app=None):
         async with AerichManager(config, app) as command:
             await command.init()
             await command.upgrade()
+
+
+async def downgrade(config, app, delete):
+    async with AerichManager(config, app) as command:
+        await command.init()
+        await command.downgrade(-1, delete)
 
 

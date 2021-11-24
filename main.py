@@ -10,6 +10,7 @@ from tortoise import Tortoise
 parser = argparse.ArgumentParser(description="Discord Bot")
 parser.add_argument("--aerich")
 parser.add_argument("--app")
+parser.add_argument("--delete", action="store_true")
 
 config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split("#")[0].split(',')]})
 config.read("config.ini")
