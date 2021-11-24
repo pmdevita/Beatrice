@@ -1,8 +1,8 @@
+import nextcord
 import nextcord.ext.commands as commands
 import pytz
 from random import choice
 from datetime import datetime
-from util.timer import Timer
 import dateparser
 import platform
 from util import member_to_mention
@@ -27,10 +27,7 @@ class Alarm:
         self.time = time
         self.message = message
         self.channel = channel
-
-        till_alarm = time - datetime.now(self.schedule.timezone)
-        self.timer = Timer(0, "Alarm", self, self.wake,
-                           initial_wait=till_alarm.total_seconds())
+        self.timer = self.schedule.discord.timer.schedule_task(time, self.wake)
 
     async def wake(self, *args):
         await self.channel.send(self.message)
@@ -48,7 +45,10 @@ class Schedule(commands.Cog):
 
     async def on_ready(self):
         async for alarm in AlarmModel.all():
-            await self.add_alarm(alarm.id, alarm.time, alarm.message, self.discord.get_channel(alarm.channel))
+            channel = self.discord.get_channel(alarm.channel)
+            if channel is None:
+                channel = await self.discord.create_dm(self.discord.get_user(alarm.channel))
+            await self.add_alarm(alarm.id, alarm.time, alarm.message, channel)
 
     @commands.command("schedule", aliases=["sched"])
     async def add_alarm_cmd(self, ctx, time_string, *args):
@@ -64,7 +64,11 @@ class Schedule(commands.Cog):
         date = dateparser.parse(time_string, settings={'PREFER_DATES_FROM': 'future'})
         date = date.astimezone(self.timezone)
 
-        a_row = await AlarmModel.create(channel=ctx.channel.id, time=date, message=message)
+        channel_id = ctx.channel.id
+        if isinstance(ctx.channel, nextcord.DMChannel):
+            channel_id = ctx.author.id
+
+        a_row = await AlarmModel.create(channel=channel_id, time=date, message=message)
         await self.add_alarm(a_row.id, date, message, ctx.channel)
 
         templates = ["Very well, I set an alarm for {}.", "Why should I have to keep watch for you? ({})", "Hmmph! ({})"]

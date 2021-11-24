@@ -5,6 +5,7 @@ import argparse
 import logging
 from database import TortoiseConfig
 from util import Utils
+from util.timer import Timer
 from tortoise import Tortoise
 
 parser = argparse.ArgumentParser(description="Discord Bot")
@@ -25,6 +26,7 @@ class DiscordBot(commands.Bot):
     def __init__(self, *args, **kwargs):
         self.config = config
         self.utils = Utils(self)
+        self.timer = Timer(self)
         self.db_config = TortoiseConfig()
         self.db_config.add_connection(self.config["general"]["db_url"])
         super().__init__(*args, **kwargs)

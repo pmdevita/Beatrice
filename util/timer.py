@@ -1,33 +1,78 @@
 import asyncio
+from datetime import datetime, timedelta
+import pytz
+
 
 # What are tasks for? https://stackoverflow.com/questions/57966935/asyncio-task-vs-coroutine
 
+class TimerTask:
+    def __init__(self, timer, time: datetime, callback, repeat=None):
+        self.timer = timer
+        self.time = time
+        self.callback = callback
+        self.repeat = repeat
+
+    async def callback(self):
+        await self.callback()
+        if self.repeat:
+            self.timer.schedule_task(self.time + self.repeat, self.callback, self.repeat)
+
 
 class Timer:
-    def __init__(self, interval, timer_name, context, callback, initial_wait=None):
-        self._interval = interval
-        self._initial_wait = initial_wait
-        self._name = timer_name
-        self._context = context
-        self._callback = callback
-        self._is_first_call = True
-        self._cancelled = False
-        self._task = asyncio.ensure_future(self._job())
+    def __init__(self, discord):
+        self.discord = discord
+        self.tasks = []
+        self.task_dict = {}
+        self._tasks_dirty = False
+        self._current_timer = None
+        self._running_task = None
+        self._balancing_task = None
+        self.timezone = pytz.timezone(self.discord.config["general"]["locale"])
 
-    async def _job(self):
-        try:
-            while not self._cancelled:
-                if self._is_first_call and self._initial_wait is not None:
-                    await asyncio.sleep(self._initial_wait)
-                else:
-                    await asyncio.sleep(self._interval)
-                await self._callback(self._name, self._context, self)
-                self._is_first_call = False
-                if self._interval == 0:
-                    self._cancelled = True
-        except Exception as ex:
-            print(ex)
+    async def _balance_tasks(self):
+        if not self._tasks_dirty:
+            return
 
-    def cancel(self):
-        self._cancelled = True
-        self._task.cancel()
+        self.tasks = sorted(self.tasks, key=lambda x: x.time)
+        next_time = self.tasks[0].time
+        if self._current_timer:
+            self._current_timer.cancel()
+        self._current_timer = asyncio.ensure_future(self._timer_job(next_time))
+        self._tasks_dirty = False
+        self._balancing_task = None
+
+    async def _timer_job(self, time: datetime):
+        till_time = time - datetime.now(self.timezone)
+        till_time_secs = till_time.total_seconds()
+        if till_time_secs > 0:
+            await asyncio.sleep(till_time_secs)
+        self._running_task = asyncio.ensure_future(self._run_jobs())
+        self._current_timer = None
+
+    async def _run_jobs(self):
+        now = datetime.now(self.timezone)
+        jobs_to_run = []
+        while self.tasks[0].time <= now:
+            jobs_to_run.append(self.tasks.pop(0))
+        self._tasks_dirty = True
+        for job in jobs_to_run:
+            try:
+                await job.callback()
+            except Exception as e:
+                print(e)
+        await self._balance_tasks()
+        self._running_task = None
+
+    def schedule_task(self, time: datetime, callback, repeat: timedelta = None):
+        if time.tzinfo is None:
+            time = time.astimezone(self.timezone)
+        task = TimerTask(self, time, callback, repeat)
+        self.tasks.append(task)
+        self._tasks_dirty = True
+        self._balancing_task = asyncio.ensure_future(self._balance_tasks())
+        return task
+
+    async def cancel(self, task):
+        self.tasks.remove(task)
+        self._tasks_dirty = True
+        self._balancing_task = asyncio.ensure_future(self._balance_tasks())
