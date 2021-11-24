@@ -17,11 +17,11 @@ class Utils:
         return members
 
 
-async def member_to_mention(self, member: nextcord.Member):
+async def member_to_mention(member: nextcord.Member):
     return f"<@!{member.id}>"
 
 
-async def get_user_name(self, user):
+async def get_user_name(user):
     if isinstance(user, nextcord.Member):
         return user.nick
     elif isinstance(user, nextcord.User):

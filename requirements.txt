@@ -4,3 +4,5 @@ bs4
 requests
 lxml
 dateparser
+tortoise-orm
+aerich

@@ -5,6 +5,18 @@ from util.timer import Timer
 import dateparser
 import platform
 from util import member_to_mention
+from tortoise.models import Model
+from tortoise import fields
+
+
+class AlarmModel(Model):
+    id = fields.IntField(pk=True)
+    channel = fields.IntField()
+    time = fields.DatetimeField()
+    message = fields.TextField()
+
+    class Meta:
+        table = "schedule_alarms"
 
 
 class Alarm:
@@ -32,6 +44,11 @@ class Schedule(commands.Cog):
         self.discord = discord
         self.alarms = {}
         self.counter = 0
+
+    async def on_ready(self):
+        print("schedule ready")
+        alarms = await AlarmModel.all()
+        print(alarms)
 
     @commands.command("schedule", aliases=["sched"])
     async def add_alarm(self, ctx, time_string, *args):
@@ -62,4 +79,5 @@ class Schedule(commands.Cog):
 
 
 def setup(bot):
+    bot.db_config.add_models("manage_schedule", "manage.schedule")
     bot.add_cog(Schedule(bot))
