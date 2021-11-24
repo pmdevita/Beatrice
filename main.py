@@ -35,7 +35,7 @@ class DiscordBot(commands.Bot):
 
     async def on_ready(self):
         await Tortoise.init(self.db_config.export())
-        await Tortoise.generate_schemas()
+        # await Tortoise.generate_schemas()
         for cog in self.cogs.values():
             if callable(getattr(cog, "on_ready", None)):
                 await cog.on_ready()

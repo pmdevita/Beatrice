@@ -6,6 +6,7 @@ BASE_CONFIG = {
             "default_connection": "default",
         },
     },
+    "use_tz": False
 }
 
 

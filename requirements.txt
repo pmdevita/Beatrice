@@ -6,3 +6,4 @@ lxml
 dateparser
 tortoise-orm
 aerich
+aiomysql
