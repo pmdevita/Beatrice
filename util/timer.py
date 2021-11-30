@@ -15,7 +15,9 @@ class TimerTask:
     async def callback(self):
         await self.callback()
         if self.repeat:
-            self.timer.schedule_task(self.time + self.repeat, self.callback, self.repeat)
+            self.time += self.repeat
+            # Readd instead of recreate so API doesn't lose handler to the task
+            self.timer._readd_task(self)
 
     def cancel(self):
         self.timer.cancel(self)
@@ -55,8 +57,13 @@ class Timer:
     async def _run_jobs(self):
         now = datetime.now(self.timezone)
         jobs_to_run = []
-        while self.tasks[0].time <= now:
-            jobs_to_run.append(self.tasks.pop(0))
+        # Bit awkward but avoids potentially unsafe getting of index 0
+        while True:
+            if len(self.tasks) > 0:
+                if self.tasks[0].time <= now:
+                    jobs_to_run.append(self.tasks.pop(0))
+                    continue
+            break
         self._tasks_dirty = True
         for job in jobs_to_run:
             try:
@@ -74,6 +81,11 @@ class Timer:
         self._tasks_dirty = True
         self._balancing_task = asyncio.ensure_future(self._balance_tasks())
         return task
+
+    def _readd_task(self, task: TimerTask):
+        self.tasks.append(task)
+        self._tasks_dirty = True
+        self._balancing_task = asyncio.ensure_future(self._balance_tasks())
 
     def cancel(self, task):
         self.tasks.remove(task)
