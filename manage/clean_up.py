@@ -1,6 +1,5 @@
 import nextcord
 import nextcord.ext.commands
-from util.timer import Timer
 from datetime import datetime, timedelta
 import re
 

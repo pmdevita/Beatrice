@@ -7,13 +7,15 @@ from database import TortoiseConfig
 from util import Utils
 from util.timer import Timer
 from tortoise import Tortoise
+import aiohttp
 
 parser = argparse.ArgumentParser(description="Discord Bot")
 parser.add_argument("--aerich")
 parser.add_argument("--app")
 parser.add_argument("--delete", action="store_true")
 
-config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split("#")[0].split(',')]})
+config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split("#")[0].split(',')
+                                                                  if i.strip() != ""]})
 config.read("config.ini")
 
 intents = discord.Intents.default()
@@ -35,12 +37,11 @@ class DiscordBot(commands.Bot):
         for extension in extensions:
             self.load_extension(extension)
 
-    async def on_ready(self):
+    async def on_connect(self):
         await Tortoise.init(self.db_config.export())
-        # await Tortoise.generate_schemas()
-        for cog in self.cogs.values():
-            if callable(getattr(cog, "on_ready", None)):
-                await cog.on_ready()
+        self.session = aiohttp.ClientSession(headers={"User-Agent": self.config["general"]["user_agent"]})
+
+    async def on_ready(self):
         print(f"Logged in as {self.user}")
         self.main_guild = self.guilds[0]
 
@@ -48,8 +49,6 @@ class DiscordBot(commands.Bot):
     #     await self.process_commands(message)
     #     print(f"Message from {message.author}: {message.content}")
 
-async def test():
-    print("hi test")
 
 if __name__ == '__main__':
     args = parser.parse_args()

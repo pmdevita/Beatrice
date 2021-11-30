@@ -5,7 +5,7 @@ from random import choice
 from datetime import datetime
 import dateparser
 import platform
-from util import member_to_mention
+from util import member_to_mention, date_countdown
 from tortoise.models import Model
 from tortoise import fields
 
@@ -36,6 +36,9 @@ class Alarm:
     def __del__(self):
         self.timer.cancel()
 
+    def __str__(self):
+        return str(self.time)
+
 
 class Schedule(commands.Cog):
     def __init__(self, discord: commands.Bot):
@@ -43,6 +46,7 @@ class Schedule(commands.Cog):
         self.alarms = {}
         self.timezone = pytz.timezone(self.discord.config["general"]["locale"])
 
+    @commands.Cog.listener("on_ready")
     async def on_ready(self):
         async for alarm in AlarmModel.all():
             channel = self.discord.get_channel(alarm.channel)
@@ -62,6 +66,10 @@ class Schedule(commands.Cog):
             message = choice(templates).format(user_mention)
 
         date = dateparser.parse(time_string, settings={'PREFER_DATES_FROM': 'future'})
+        if date is None:
+            await ctx.send("What? I don't know when that is!")
+            return
+
         date = date.astimezone(self.timezone)
 
         channel_id = ctx.channel.id
@@ -76,7 +84,8 @@ class Schedule(commands.Cog):
         fmt_string = "%B %-d at %-I:%M %p"
         if platform.system() == "Windows":  # Bruh
             fmt_string = "%B %d at %I:%M %p"
-        await ctx.send(choice(templates).format(date.strftime(fmt_string)))
+        date_string = f"{date.strftime(fmt_string)} {date_countdown(date)}"
+        await ctx.send(choice(templates).format(date_string))
 
     async def add_alarm(self, id, date, message, channel):
         alarm = Alarm(self, id, date, message, channel)

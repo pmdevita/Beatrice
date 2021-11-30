@@ -4,12 +4,13 @@ import asyncio
 
 
 class AerichManager:
-    def __init__(self, config, app=None):
+    def __init__(self, config, app=None, close_connections=True):
         self.config = config
         if app:
             self.app = app
         else:
             self.app = "models"
+        self.close_connections = close_connections
 
     async def __aenter__(self):
         self.db_type = self.config.export()["connections"]["default"].split("://")[0]
@@ -17,7 +18,8 @@ class AerichManager:
         return self.command
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await Tortoise.close_connections()
+        if self.close_connections:
+            await Tortoise.close_connections()
 
 
 def run_aerich(config, args):
@@ -67,8 +69,8 @@ async def migrate(config, app=None):
         async with AerichManager(config, app) as command:
             await command.init()
             # Seems to require this hack ugh
-            if Migrate._last_version_content is None:
-                Migrate._last_version_content = {}
+            # if Migrate._last_version_content is None:
+            #     Migrate._last_version_content = {}
             Migrate.migrate_location.mkdir(parents=True, exist_ok=True)  # Aerich is legally braindead
             await command.migrate(app)  # create tables only if they don't exist
 
