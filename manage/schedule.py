@@ -98,4 +98,4 @@ class Schedule(commands.Cog):
 
 def setup(bot):
     bot.db_config.add_models("manage_schedule", "manage.schedule")
-    bot.add_cog(Schedule(bot))
+    bot.add_cog(Schedule(bot), models=".")
