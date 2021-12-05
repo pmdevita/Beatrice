@@ -40,7 +40,7 @@ class Alarm:
         return str(self.time)
 
 
-class Schedule(commands.Cog):
+class Schedule(commands.Cog, name="manage_schedule"):
     def __init__(self, discord: commands.Bot):
         self.discord = discord
         self.alarms = {}
@@ -97,5 +97,4 @@ class Schedule(commands.Cog):
 
 
 def setup(bot):
-    bot.db_config.add_models("manage_schedule", "manage.schedule")
     bot.add_cog(Schedule(bot), models=".")

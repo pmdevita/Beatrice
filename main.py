@@ -61,4 +61,3 @@ if __name__ == '__main__':
     else:
         client.run(config["general"]["token"])
         print("Exiting...")
-        exit(0)

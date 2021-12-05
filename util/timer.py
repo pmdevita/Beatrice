@@ -88,6 +88,9 @@ class Timer:
         self._balancing_task = asyncio.ensure_future(self._balance_tasks())
 
     def cancel(self, task):
-        self.tasks.remove(task)
+        try:
+            self.tasks.remove(task)
+        except ValueError:
+            print("Tried to remove", task, "but it's not in the task list?")
         self._tasks_dirty = True
         self._balancing_task = asyncio.ensure_future(self._balance_tasks())
