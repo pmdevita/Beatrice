@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime, timedelta
 import pytz
+import weakref
 
 
 # What are tasks for? https://stackoverflow.com/questions/57966935/asyncio-task-vs-coroutine
@@ -21,6 +22,9 @@ class TimerTask:
 
     def cancel(self):
         self.timer.cancel(self)
+
+    def __del__(self):
+        self.cancel()
 
 
 class Timer:

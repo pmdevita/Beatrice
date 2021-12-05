@@ -21,7 +21,8 @@ for text_file in text_files:
         if line["speaker"] == "Beatrice":
             contexted_line = []
             for j in range(7):
-                contexted_line.append(text_file[i-j]["dialogue"] if (i-j) >= 0 else "")
+                if (i - j) >= 0:
+                    contexted_line.append(text_file[i-j]["dialogue"])
             dialogue.append(contexted_line)
 
 # QA Text

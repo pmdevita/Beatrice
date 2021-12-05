@@ -69,8 +69,9 @@ class DiscordBot(TortoiseBot):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    print(config["general"]["prefix"])
-    client = DiscordBot(command_prefix=config["general"]["prefix"], tortoise_config=TORTOISE_CONFIG, intents=intents)
+    prefix = config['general']['prefix']
+    prefix = prefix.replace("\"", "")
+    client = DiscordBot(command_prefix=prefix, tortoise_config=TORTOISE_CONFIG, intents=intents)
 
     client.configure(extensions)
     if args.aerich:
