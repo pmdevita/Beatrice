@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 
 file_path = Path("raw text/ep9.ass")
-output_path = Path("cleaned text/ep9.json")
+output_path = Path("substojson/ep9.json")
 
 with open(file_path) as f:
     text = f.read()

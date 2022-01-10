@@ -23,6 +23,8 @@ for text_file in text_files:
             for j in range(7):
                 if (i - j) >= 0:
                     contexted_line.append(text_file[i-j]["dialogue"])
+                else:
+                    contexted_line.append("")
             dialogue.append(contexted_line)
 
 # QA Text
@@ -38,8 +40,11 @@ for text_file in text_files:
         if line["speaker"] == "Beatrice":
             contexted_line = []
             for j in range(2):
-                contexted_line.append(text_file[i-j]["dialogue"] if (i-j) >= 0 else "")
-            dialogue.append(contexted_line)
+                if (i - j) >= 0:
+                    contexted_line.append(text_file[i - j]["dialogue"])
+                else:
+                    contexted_line.append("")
+            # dialogue.append(contexted_line)
 
 
 print("dialogue lines", len(dialogue))
