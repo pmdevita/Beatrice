@@ -8,7 +8,7 @@ tortoise-orm
 aerich
 aiomysql
 pytz
-# chatterbot
+#chatterbot
 aiohttp
-
-
+tzdata
+aioconsole

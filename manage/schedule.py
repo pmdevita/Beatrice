@@ -34,10 +34,14 @@ class Alarm:
         await self.schedule.delete_alarm(self.num)
 
     def __del__(self):
-        self.timer.cancel()
+        if not self.timer.has_run:
+            self.timer.cancel()
+
+    def __repr__(self):
+        return self.__str__()
 
     def __str__(self):
-        return str(self.time)
+        return f"Alarm({self.num}, {self.time}, {self.message})"
 
 
 class Schedule(commands.Cog, name="manage_schedule"):
@@ -45,9 +49,9 @@ class Schedule(commands.Cog, name="manage_schedule"):
         self.discord = discord
         self.alarms = {}
         self.timezone = pytz.timezone(self.discord.config["general"]["locale"])
+        self._inited = False
 
-    @commands.Cog.listener("on_ready")
-    async def on_ready(self):
+    async def __async_init__(self):
         async for alarm in AlarmModel.all():
             channel = self.discord.get_channel(alarm.channel)
             if channel is None:

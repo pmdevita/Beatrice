@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime, timedelta
 import pytz
 import weakref
+from zoneinfo import ZoneInfo
 
 
 # What are tasks for? https://stackoverflow.com/questions/57966935/asyncio-task-vs-coroutine
@@ -10,21 +11,45 @@ class TimerTask:
     def __init__(self, timer, time: datetime, callback, repeat=None):
         self.timer = timer
         self.time = time
-        self.callback = callback
+        self._callback = weakref.WeakMethod(callback)
         self.repeat = repeat
+        self._cancelled = False
+        self._run = False
 
     async def callback(self):
-        await self.callback()
+        if self._cancelled:
+            print("Warning: Callback was attempted on a cancelled task!!!", self._callback)
+        callback = self._callback()
+        if callback is not None:
+            await callback()
         if self.repeat:
             self.time += self.repeat
             # Readd instead of recreate so API doesn't lose handler to the task
             self.timer._readd_task(self)
+        else:
+            self._run = True
+
+    @property
+    def has_run(self):
+        return self._run
 
     def cancel(self):
+        if self._cancelled:
+            print("Warning: Callback was cancelled twice!!!", self._callback)
+            return
+        if self._run:
+            print("Warning: Cancelling task that was already run!", self._callback)
+            print(self.timer.tasks)
+            return
+        self._cancelled = True
         self.timer.cancel(self)
 
-    def __del__(self):
-        self.cancel()
+    def __repr__(self):
+        return f"TimerTask({self.time}, {self._callback})"
+
+    def __bool__(self):
+        # This is so you can do if timer_obj and if it's true, cancel it
+        return not self.has_run
 
 
 class Timer:
@@ -92,9 +117,6 @@ class Timer:
         self._balancing_task = asyncio.ensure_future(self._balance_tasks())
 
     def cancel(self, task):
-        try:
-            self.tasks.remove(task)
-        except ValueError:
-            print("Tried to remove", task, "but it's not in the task list?")
+        self.tasks.remove(task)
         self._tasks_dirty = True
         self._balancing_task = asyncio.ensure_future(self._balance_tasks())

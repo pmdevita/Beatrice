@@ -36,6 +36,7 @@ class DiscordBot(TortoiseBot):
         self.timer = Timer(self)
         super().__init__(*args, **kwargs)
         self._has_inited = False
+        self._has_inited_cogs = False
 
     def configure(self, extensions):
         for extension in extensions:
@@ -49,6 +50,11 @@ class DiscordBot(TortoiseBot):
     async def on_ready(self):
         print(f"Logged in as {self.user}")
         self.main_guild = self.guilds[0]
+        if not self._has_inited_cogs:
+            self._has_inited_cogs = True
+            for cog in self.cogs.values():
+                if callable(getattr(cog, "__async_init__", None)):
+                    await cog.__async_init__()
 
     async def on_close(self):
         await tortoise.Tortoise.close_connections()

@@ -1,21 +1,38 @@
 import nextcord
 from util.regex import MENTION_STRING
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 class Utils:
     def __init__(self, discord):
         self.discord = discord
 
-    async def find_mentions(self, string):
-        if isinstance(string, str):
-            string = string.split()
-        members = []
-        for i in string:
-            mention = MENTION_STRING.findall(i)
-            if mention:
-                members.append(await self.discord.main_guild.fetch_member(mention[0]))
-        return members
+
+# Todo: fix for strings with multiple mentions not separated by spaces
+async def find_mentions(self, guild: nextcord.Guild, string):
+    if isinstance(string, str):
+        string = string.split()
+    members = []
+    for i in string:
+        mention = MENTION_STRING.findall(i)
+        if mention:
+            members.append(await guild.fetch_member(mention[0]))
+    return members
+
+
+async def get_recent_users(guild, days=20):
+    users = set()
+    for channel in guild.text_channels:
+        if channel.permissions_for(guild.me).read_message_history:
+            async for message in channel.history(limit=300, after=datetime.now() - timedelta(days=days)):
+                author = message.author
+                if isinstance(author, nextcord.User):
+                    author = guild.get_member(author.id)
+                    if not author:
+                        continue
+                if author:
+                    users.add(author)
+    return list(users)
 
 
 async def member_to_mention(member: nextcord.Member):

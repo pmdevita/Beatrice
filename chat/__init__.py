@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 class ChatThreads(Model):
     thread_id = fields.BigIntField(pk=True)
     history = fields.TextField()
+    last_message = fields.DatetimeField
 
     class Meta:
         table = "chat_threads"
@@ -23,8 +24,7 @@ class ChatBot(commands.Cog):
         self.messaging_lock = asyncio.Lock()
         self.unload_job = None
 
-    @commands.Cog.listener("on_ready")
-    async def on_ready(self):
+    async def __async_init__(self):
         stuff = await ChatThreads.all().values("thread_id", "history")
         for i in stuff:
             self.threads.add(i["thread_id"])

@@ -1,6 +1,6 @@
 import nextcord.ext.commands as commands
 from random import choice
-from util import get_user_name
+from util import get_user_name, find_mentions
 
 
 class Basic(commands.Cog):
@@ -8,9 +8,9 @@ class Basic(commands.Cog):
         self.discord = discord
 
     @commands.command("hi", aliases=["hello", "hey", "howdy", "beatrice", "beako", "betty"])
-    async def hello(self, ctx, *args):
+    async def hello(self, ctx: commands.Context, *args):
         member = ctx.author
-        mentions = await self.discord.utils.find_mentions(args)
+        mentions = find_mentions(ctx.guild, args)
         if mentions:
             member = mentions[0]
 

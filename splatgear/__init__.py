@@ -37,8 +37,7 @@ class SplatGear(commands.Cog):
         self.brands = {}
         self.skills = {}
 
-    @commands.Cog.listener("on_ready")
-    async def on_ready(self):
+    async def __async_init__(self):
         async with self.discord.session.get("https://splatoon2.ink/data/locale/en.json") as response:
             data = await response.json()
             for gear in data["gear"]:
