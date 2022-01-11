@@ -12,3 +12,4 @@ pytz
 aiohttp
 tzdata
 aioconsole
+git+https://github.com/pmdevita/nextcord-tortoise

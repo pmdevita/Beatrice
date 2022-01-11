@@ -16,7 +16,7 @@ class CleanUp(nextcord.ext.commands.Cog):
 
     async def clean_up(self, *args):
         print("Cleaning up channels...")
-        YOUTUBE_REGEX = re.compile("(https?://youtube.com)")
+        YOUTUBE_REGEX = re.compile("(https?://(?:youtube.com|youtu.be))")
         users = self.discord.config.getlist("clean_up", "users")
         for user in users:
             name, discriminator = user.split(":")
@@ -33,8 +33,11 @@ class CleanUp(nextcord.ext.commands.Cog):
                         if message.author.name != name or message.author.discriminator != discriminator:
                             continue
                         match = YOUTUBE_REGEX.match(message.content)
-                        if match:
-                            await message.delete()
+                        if match is None:
+                            continue
+                        if "⭐" in [reaction.emoji for reaction in message.reactions]:
+                            continue
+                        await message.delete()
         print("Clean up complete")
 
 
