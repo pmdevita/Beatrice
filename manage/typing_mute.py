@@ -2,6 +2,7 @@ import datetime
 import nextcord
 import nextcord.ext.commands as commands
 import nextcord.errors as nx_errors
+from random import choice
 
 
 class Mute:
@@ -15,13 +16,13 @@ class Mute:
         if self.timer:
             if not self.timer.has_run:
                 self.timer.cancel()
-        self.timer = self.discord.timer.schedule_task(time + datetime.timedelta(seconds=8), self.check_typing)
+        self.timer = self.discord.timer.schedule_task(time + datetime.timedelta(seconds=8), self.unmute)
         try:
             await self.user.edit(mute=True)
         except nx_errors.Forbidden as e:
             print("Can't mute user", e, self.user)
 
-    async def check_typing(self):
+    async def unmute(self):
         try:
             await self.user.edit(mute=False)
         except nx_errors.Forbidden as e:
@@ -36,11 +37,16 @@ class TypingMute(commands.Cog):
     @commands.command("typingmute", aliases=["tm"])
     async def toggle_mute(self, context: commands.Context, *args):
         if context.author in self.users:
+            await self.users[context.author].unmute()
             self.users.pop(context.author)
-            await context.send("Mute toggled off.")
+            await context.send(choice([f"Calmed down now haven't you {context.author.display_name}?",
+                                       f"Learned your lesson, I suppose?",
+                                       f"Finally, some peace and quiet!"]) + " (Typing mute off)")
         else:
             self.users[context.author] = Mute(self.discord, context.author, context.guild)
-            await context.send("Mute toggled on.")
+            await context.send(choice([f"Be quiet {context.author.display_name}!",
+                                       f"I can hardly read with all this noise {context.author.display_name}!",
+                                       f"You're too noisy {context.author.display_name}, I suppose!"]) + " (Typing mute on)")
 
 
     @commands.Cog.listener("on_typing")
