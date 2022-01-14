@@ -64,7 +64,7 @@ class Timer:
         self.timezone = pytz.timezone(self.discord.config["general"]["locale"])
 
     async def _balance_tasks(self):
-        if not self._tasks_dirty:
+        if not self._tasks_dirty or not self.tasks:
             return
 
         self.tasks = sorted(self.tasks, key=lambda x: x.time)
