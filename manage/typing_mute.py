@@ -52,7 +52,6 @@ class TypingMute(commands.Cog):
     @commands.Cog.listener("on_typing")
     async def on_typing(self, channel, user, when):
         if user in self.users:
-            print("Typing event!", channel, user, when)
             await self.users[user].typing(when)
 
 
