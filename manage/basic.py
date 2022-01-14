@@ -10,7 +10,7 @@ class Basic(commands.Cog):
     @commands.command("hi", aliases=["hello", "hey", "howdy", "beatrice", "beako", "betty"])
     async def hello(self, ctx: commands.Context, *args):
         member = ctx.author
-        mentions = find_mentions(ctx.guild, args)
+        mentions = await find_mentions(ctx.guild, args)
         if mentions:
             member = mentions[0]
 

@@ -9,14 +9,14 @@ class Utils:
 
 
 # Todo: fix for strings with multiple mentions not separated by spaces
-async def find_mentions(self, guild: nextcord.Guild, string):
-    if isinstance(string, str):
-        string = string.split()
+async def find_mentions(guild: nextcord.Guild, string):
+    if isinstance(string, list) or isinstance(string, tuple):
+        string = " ".join(string)
     members = []
-    for i in string:
-        mention = MENTION_STRING.findall(i)
-        if mention:
-            members.append(await guild.fetch_member(mention[0]))
+    mention = MENTION_STRING.findall(string)
+    if mention:
+        for i in mention:
+            members.append(await guild.fetch_member(i))
     return members
 
 
