@@ -64,13 +64,13 @@ class DiscordBot(TortoiseBot):
     #     print(f"Message from {message.author}: {message.content}")
 
     def tortoise_loop(self, *args):
-        loop = asyncio.get_event_loop()
         try:
-            loop.run_until_complete(self.start(*args))
+            self.loop.run_until_complete(self.start(*args))
         except KeyboardInterrupt:
-            loop.run_until_complete(self.on_close())
+            print("Exiting...")
         finally:
-            loop.close()
+            self.loop.run_until_complete(self.on_close())
+            self.loop.close()
 
 
 if __name__ == '__main__':
@@ -85,4 +85,3 @@ if __name__ == '__main__':
         run_aerich(client, args)
     else:
         client.tortoise_loop(config["general"]["token"])
-        print("Exiting...")
