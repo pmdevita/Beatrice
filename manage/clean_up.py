@@ -13,7 +13,6 @@ class CleanUp(nextcord.ext.commands.Cog):
         midnight = midnight.replace(hour=0, minute=0, second=0)
         midnight += timedelta(days=1)
         self.timer = self.discord.timer.schedule_task(midnight, self.clean_up, timedelta(days=1))
-        print(self.discord.guilds)
 
     async def clean_up(self, *args):
         print("Cleaning up channels...")

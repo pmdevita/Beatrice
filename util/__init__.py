@@ -39,15 +39,6 @@ async def member_to_mention(member: nextcord.Member):
     return f"<@!{member.id}>"
 
 
-async def get_user_name(user):
-    if isinstance(user, nextcord.Member):
-        return user.nick
-    elif isinstance(user, nextcord.User):
-        return user.name
-    else:
-        raise Exception("Unknown user type")
-
-
 def date_countdown(date: datetime):
     return f"<t:{round(date.timestamp())}:R>"
 

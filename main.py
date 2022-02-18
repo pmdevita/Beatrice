@@ -21,10 +21,12 @@ attach_argparse_group(parser)
 
 config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split("#")[0].split(',')
                                                                   if i.strip() != ""]})
-config.read("config.ini")
+with open("config.ini", "r", encoding="utf-8") as f:
+    config.read_file(f)
 
 intents = nextcord.Intents.default()
 intents.members = True
+intents.reactions = True
 
 # extensions = config.getlist("general", "extensions")
 TORTOISE_CONFIG["connections"]["default"] = config["general"]["db_url"]

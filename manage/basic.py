@@ -1,7 +1,6 @@
 import nextcord.ext.commands as commands
-import nextcord
 from random import choice
-from util import get_user_name, find_mentions, member_to_mention
+from util import find_mentions, member_to_mention
 
 
 class Basic(commands.Cog):
@@ -16,7 +15,7 @@ class Basic(commands.Cog):
             member = mentions[0]
 
         templates = ["Hmmmmm... hi {}.", "Yes, yes, hello {}.", "Hi {}, I guess.", "I'm busy right now {}, shoo, shoo!"]
-        await ctx.send(choice(templates).format(await get_user_name(member)))
+        await ctx.send(choice(templates).format(member.display_name))
 
     @commands.command(name="ping")
     async def ping(self, ctx: commands.Context):
