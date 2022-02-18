@@ -59,6 +59,14 @@ class Console(commands.Cog):
     async def timers(self):
         print(self.discord.timer.tasks)
 
+    @register("guilds")
+    async def guilds(self):
+        print(self.discord.guilds)
+
+    @register("cogs")
+    async def cogs(self):
+        print(self.discord.cogs)
+
 
 
 

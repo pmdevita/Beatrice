@@ -5,3 +5,4 @@ config.ini
 db.sqlite3
 aerich.ini
 *.sqlite3
+cogs.conf

@@ -10,6 +10,7 @@ import tortoise
 
 from util import Utils
 from util.timer import Timer
+from util.cog_loader import CogLoader
 from nextcord_tortoise import Bot as TortoiseBot
 from nextcord_tortoise import attach_argparse_group
 from settings import CONFIG as TORTOISE_CONFIG
@@ -25,7 +26,7 @@ config.read("config.ini")
 intents = nextcord.Intents.default()
 intents.members = True
 
-extensions = config.getlist("general", "extensions")
+# extensions = config.getlist("general", "extensions")
 TORTOISE_CONFIG["connections"]["default"] = config["general"]["db_url"]
 
 
@@ -34,13 +35,13 @@ class DiscordBot(TortoiseBot):
         self.config = config
         self.utils = Utils(self)
         self.timer = Timer(self)
+        self.cog_manager = CogLoader(self, config["general"]["cogs"])
         super().__init__(*args, **kwargs)
         self._has_inited = False
         self._has_inited_cogs = False
 
-    def configure(self, extensions):
-        for extension in extensions:
-            self.load_extension(extension)
+    def configure(self):
+        self.cog_manager.init_bot()
 
     async def on_connect(self):
         if not self._has_inited:
@@ -49,7 +50,7 @@ class DiscordBot(TortoiseBot):
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")
-        self.main_guild = self.guilds[0]
+        # self.main_guild = self.guilds[0]
         if not self._has_inited_cogs:
             self._has_inited_cogs = True
             for cog in self.cogs.values():
@@ -59,9 +60,8 @@ class DiscordBot(TortoiseBot):
     async def on_close(self):
         await tortoise.Tortoise.close_connections()
 
-    # async def on_message(self, message):
-    #     await self.process_commands(message)
-    #     print(f"Message from {message.author}: {message.content}")
+    async def on_message(self, message):
+        await self.cog_manager.process_commands(message)
 
     def tortoise_loop(self, *args):
         try:
@@ -78,8 +78,7 @@ if __name__ == '__main__':
     prefix = config['general']['prefix']
     prefix = prefix.replace("\"", "")
     client = DiscordBot(command_prefix=prefix, tortoise_config=TORTOISE_CONFIG, intents=intents)
-
-    client.configure(extensions)
+    client.configure()
     if args.aerich:
         from nextcord_tortoise.aerich import run_aerich
         run_aerich(client, args)

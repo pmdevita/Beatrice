@@ -36,6 +36,10 @@ class Basic(commands.Cog):
         else:
             await ctx.send(f"Who?")
 
+    # @commands.Cog.listener("on_message")
+    # async def on_message(self, message: nextcord.Message, *arg):
+    #     print("got message", message)
+
 
 def setup(bot):
     bot.add_cog(Basic(bot))
