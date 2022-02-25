@@ -1,4 +1,5 @@
 nextcord
+nextcord[voice]
 alive-progress
 bs4
 requests
