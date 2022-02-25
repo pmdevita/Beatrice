@@ -22,8 +22,14 @@ class BotFilter:
         self.__perms = perms
         # We need to make sure the BotFilter instance, not the Bot, is passed to the cog for it's init
         # So we monkeypatch these two functions in and ensure they use this BotFilter as self
-        self.load_extension = lambda *args: BotBase.__dict__["load_extension"](self, *args)
-        self._load_from_module_spec = lambda *args: BotBase.__dict__["_load_from_module_spec"](self, *args)
+        # self.load_extension = lambda *args: BotBase.__dict__["load_extension"](self, *args)
+        # self._load_from_module_spec = lambda *args: BotBase.__dict__["_load_from_module_spec"](self, *args)
+
+    def load_extension(self, *args, **kwargs):
+        BotBase.__dict__["load_extension"](self, *args, **kwargs)
+
+    def _load_from_module_spec(self, *args, **kwargs):
+        BotBase.__dict__["_load_from_module_spec"](self, *args, **kwargs)
 
     @classmethod
     def __instancecheck__(cls, instance):   # lmao, Python is wild
