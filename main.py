@@ -60,7 +60,11 @@ class DiscordBot(TortoiseBot):
                     await cog.__async_init__()
 
     async def on_close(self):
+        print("Closing")
         await tortoise.Tortoise.close_connections()
+        for cog in self.cogs.values():
+            if callable(getattr(cog, "on_close", None)):
+                await cog.on_close()
 
     async def on_message(self, message):
         await self.cog_manager.process_commands(message)
