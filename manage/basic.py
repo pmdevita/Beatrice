@@ -5,6 +5,7 @@ import nextcord.ext.commands as commands
 from nextcord import FFmpegOpusAudio
 from random import choice
 from util import find_mentions, member_to_mention
+from sound_manager import AudioFile
 
 HI_FILES = [
     ("beatrice_hi1.opus", "You come in here without knocking? What a rude one you are."),
@@ -17,6 +18,9 @@ class Basic(commands.Cog):
     def __init__(self, discord):
         self.discord = discord
         self.connection = None
+
+    async def __async_init__(self):
+        self.sound_manager = self.discord.cogs["SoundManager"]
 
     @commands.command("hi", aliases=["hello", "hey", "howdy", "beatrice", "beako", "betty"])
     async def hello(self, ctx: commands.Context, *args):
@@ -31,7 +35,8 @@ class Basic(commands.Cog):
         else:
             line = choice(HI_FILES)
             await ctx.send(line[1].format(member.display_name))
-            await self.soundboard(member, f"assets/{line[0]}")
+            await self.sound_manager.play(member, "notifications",
+                                          AudioFile(f"assets/{line[0]}", 2, duck=True))
 
     @commands.command(name="ping")
     async def ping(self, ctx: commands.Context):
@@ -53,22 +58,12 @@ class Basic(commands.Cog):
 
     @commands.command("inhale")
     async def inhale_a_car(self, ctx: commands.Context, *args):
-        await self.soundboard(ctx.author, "assets/inhale_a_car.opus")
+        await self.sound_manager.play(ctx.author, "notifications", AudioFile("assets/inhale_a_car.opus", 5, duck=True))
+        await ctx.message.delete()
 
     @commands.command("mouthful")
     async def mouthful(self, ctx: commands.Context, *args):
-        await self.soundboard(ctx.author, "assets/mouthful_mode.opus")
-
-    async def soundboard(self, member: nextcord.Member, file_path):
-        if member.voice is None:
-            return
-
-        connection = await member.voice.channel.connect()
-        connection.play(FFmpegOpusAudio(file_path))
-        while connection.is_playing():
-            await asyncio.sleep(1)
-        await connection.disconnect()
-
+        await self.sound_manager.play(ctx.author, "notifications", AudioFile("assets/mouthful_mode.opus", 5, duck=True))
 
     # @commands.Cog.listener("on_message")
     # async def on_message(self, message: nextcord.Message, *arg):

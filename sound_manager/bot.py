@@ -4,6 +4,9 @@ import traceback
 import nextcord
 from nextcord import FFmpegPCMAudio
 from nextcord.ext import commands
+import logging
+
+logging.basicConfig(level=logging.INFO)
 
 
 class SoundManagerBot(commands.Bot):
