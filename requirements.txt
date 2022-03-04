@@ -16,3 +16,4 @@ aioconsole
 git+https://github.com/pmdevita/nextcord-tortoise
 aiomultiprocess
 numpy
+yt_dlp

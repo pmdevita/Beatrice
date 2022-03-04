@@ -59,7 +59,6 @@ class Basic(commands.Cog):
     @commands.command("inhale")
     async def inhale_a_car(self, ctx: commands.Context, *args):
         await self.sound_manager.play(ctx.author, "notifications", AudioFile("assets/inhale_a_car.opus", 5, duck=True))
-        await ctx.message.delete()
 
     @commands.command("mouthful")
     async def mouthful(self, ctx: commands.Context, *args):
