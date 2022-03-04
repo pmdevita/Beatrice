@@ -80,13 +80,7 @@ class GuildConnection:
 
     async def send(self):
         data = await self.guild.read()
-        if not data:
-            print("wuh oh, sending no data!!!!")
-            # try:
-            #     self.connection.send_audio_packet(data, encode=True)
-            # except nextcord.opus.OpusError:
-            #     print("didn't work out so well!!!!!")
-        else:
+        if data:
             self.connection.send_audio_packet(data, encode=True)
 
 
@@ -114,53 +108,6 @@ class GuildAudio(nextcord.AudioSource):
         await audio_channel.play(audio_file, override)
         print("queueing file", self.connection)
         await self.manager.register_playback(self, voice_channel)
-
-    async def play_job(self, voice_channel: nextcord.VoiceChannel):
-        print("starting play job")
-        try:
-            if self.connection:
-                await self.connection.disconnect()
-            self.channel = voice_channel
-            # try:
-            print("connecting...")
-            self.connection = await voice_channel.connect()
-            if not self.connection.is_connected():
-                print("not connected!")
-            else:
-                print("connected")
-            # except nextcord.errors.ClientException:
-            #     print("already connected??????")
-            is_playing = asyncio.Event()
-            print("starting play loop")
-            while self.is_playing and self.has_queue:
-                self.connection.play(self, after=lambda x: is_playing.set())
-                await is_playing.wait()
-                is_playing.clear()
-                if self.is_playing:
-                    print("Playing finished but we still have sources, retrying")
-                    print(self.channels)
-                if not self.is_playing and self.has_queue:
-                    print("not playing but we have queue, waiting for keep_playing event")
-                    await self.keep_playing.wait()
-                    self.keep_playing.clear()
-            print("stopping play job")
-            await self.connection.disconnect()
-            self.channel = None
-            self.connection = None
-        except:
-            print(traceback.format_exc())
-        self.playing_task = None
-
-    @property
-    def is_playing(self):
-        return self._playing
-
-    @property
-    def has_queue(self):
-        for channel in self.channels.values():
-            if channel.has_queue():
-                return True
-        return False
 
     async def _update_play(self):
         for channel in self.channels.values():
@@ -234,19 +181,6 @@ class DuckManager:
             print(traceback.format_exc())
         self.duck_job = None
 
-    def finished_ducking(self, channel):
-        print("finsihed ducking")
-        for channel in self.guild.channels.values():
-            if channel.is_playing():
-                if channel.automation:
-                    if channel.automation.is_automating():
-                        return
-        # All channels are finished ducking, play the held up channel
-        print("unpausing ducked channel", self.waiting_to_play)
-        if self.waiting_to_play:
-            self.waiting_to_play.pause = False
-            self.waiting_to_play = False
-
 
 class AudioChannel(nextcord.AudioSource):
     def __init__(self, guild: GuildAudio):
@@ -276,9 +210,6 @@ class AudioChannel(nextcord.AudioSource):
             return True
         else:
             return False
-
-    def has_queue(self):
-        return len(self.queue) > 0
 
     async def start(self, next_event=None, override=False):
         """
@@ -317,7 +248,6 @@ class AudioChannel(nextcord.AudioSource):
             self.automation_complete()
 
     def automation_complete(self):
-        # self.guild.duck_manager.finished_ducking(self)
         if self.automation_event:
             self.automation_event.set()
             self.automation_event = None
