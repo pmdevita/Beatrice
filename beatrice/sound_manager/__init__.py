@@ -1,13 +1,11 @@
 import asyncio
-from settings import SOUND_CONFIG
+from beatrice.settings import SOUND_CONFIG
 
 import nextcord
 from nextcord.ext import commands
-from .bot import start_bot, start_bot_async
+from .bot import start_bot
 from .data import AudioFile
 import multiprocessing
-# import aiomultiprocess
-# import aioprocessing
 
 
 class SoundManager(commands.Cog):
@@ -54,6 +52,7 @@ class SoundManager(commands.Cog):
     async def play(self, voice_channel: nextcord.VoiceChannel, audio_channel, audio_file: AudioFile, override=False):
         """
 
+        :param audio_file: An instance of AudioFile describing what and how to play
         :param voice_channel: The voice channel to play the sound in or a person to track down to play to
         :param audio_channel: The audio channel to play the sound on
         :param override: Override the current sound in that channel. Otherwise, queue it to be played next

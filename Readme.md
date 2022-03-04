@@ -9,8 +9,12 @@ Beatrice has a number of notable technologies that were developed along with her
 - [nextcord-tortoise](https://github.com/pmdevita/nextcord-tortoise), Easy and quick Django-like database integration 
 for Nextcord. Most apps under Beatrice had their database code written in minutes or less with this tool.
 
-- ![Efficient async timers](util/timer.py) for apps to schedule events with optional repeats, using native DateTime and 
-TimeDelta objects.
+- ![Efficient async timers](beatrice/util/timer.py) for apps to schedule events with optional repeats, using native 
+DateTime and TimeDelta objects.
+
+- ![Advanced audio playback](beatrice/sound_manager/cog.py) supporting multiple audio channels in a single voice 
+channel connection and supporting multiple simultaneous connections across multiple guilds, all mixed 
+and processed in realtime.
 
 - Beatrice Chat, a neural network fine-tuned from Microsoft's DialoGPT to talk like Beatrice.
 
@@ -23,4 +27,61 @@ The full set of apps running under Beatrice include:
 shuffling everyone's usernames or changing them to the closest anagram of Pokémon species or Minecraft block.
 - A terminal console for editing or viewing info for apps or doing some difficult on-the-fly debugging
 - A hi command, ping command, and some server specific clean up tasks.
+- Basic support for YouTube audio playback and some funny sound effects
+
+## Configuration
+
+Beatrice requires two different configurations, the main config and the cog config.
+
+### Main config
+
+```ini
+[general]
+prefix = "-b "
+token = discord_bot_token
+cogs = cogs.conf
+logging_folder =
+logging_name = discordbot
+db_url = sqlite://db.sqlite3
+locale = America/New_York
+operator = 1234_id_of_operator_user
+user_agent = Beatrice/pmdevita
+
+[clean_up]
+users = username:discriminator,username:discriminator
+
+[chat]
+socket_path = /tmp/beatrice_chat.sock
+
+[starred]
+threshold = 3
+emoji = ⭐
+```
+
+### Cog config
+
+Cogs can be imported and enabled in three categories
+
+- `[all guilds]` For cogs that are enabled in all guilds
+- `[dm]` For cogs that are enabled in all dms
+- `[guild_id]` To enable a cog specifically in that guild
+
+```ini
+[all guilds]
+Beatrice.manage.basic
+Beatrice.manage.console
+Beatrice.manage.schedule
+Beatrice.splatgear
+
+[dm]
+Beatrice.manage.basic
+Beatrice.manage.schedule
+Beatrice.splatgear
+
+[guild_id]
+Beatrice.manage.clean_up
+Beatrice.chat
+Beatrice.sound_manager
+Beatrice.youtube
+```
 

@@ -8,12 +8,12 @@ import logging
 
 import tortoise
 
-from util import Utils
-from util.timer import Timer
-from util.cog_loader import CogLoader
+from .util import Utils
+from .util.timer import Timer
+from .util.cog_loader import CogLoader
 from nextcord_tortoise import Bot as TortoiseBot
 from nextcord_tortoise import attach_argparse_group
-from settings import CONFIG as TORTOISE_CONFIG
+from .settings import CONFIG as TORTOISE_CONFIG
 import aiohttp
 
 parser = argparse.ArgumentParser(description="Discord Bot")
@@ -79,7 +79,7 @@ class DiscordBot(TortoiseBot):
             self.loop.close()
 
 
-if __name__ == '__main__':
+def main():
     args = parser.parse_args()
     prefix = config['general']['prefix']
     prefix = prefix.replace("\"", "")
@@ -90,3 +90,7 @@ if __name__ == '__main__':
         run_aerich(client, args)
     else:
         client.tortoise_loop(config["general"]["token"])
+
+
+if __name__ == '__main__':
+    main()

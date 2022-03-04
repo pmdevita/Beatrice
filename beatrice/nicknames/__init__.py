@@ -1,7 +1,7 @@
 import nextcord.ext.commands as commands
 import nextcord.errors as nx_errors
 import importlib
-import util
+from .. import util
 from .models import NicknameGroup, Nickname
 
 transformer_map = {

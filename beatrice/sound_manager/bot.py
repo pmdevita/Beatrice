@@ -1,12 +1,10 @@
 import asyncio
 import traceback
-
-import nextcord
-from nextcord import FFmpegPCMAudio
 from nextcord.ext import commands
-import logging
 
-logging.basicConfig(level=logging.INFO)
+
+# import logging
+# logging.basicConfig(level=logging.INFO)
 
 
 class SoundManagerBot(commands.Bot):
@@ -28,7 +26,7 @@ class SoundManagerBot(commands.Bot):
     async def __async_init__(self):
         asyncio.get_event_loop().add_reader(self.pipe.fileno(), self._read_event.set)
         self._read_loop = asyncio.ensure_future(self._receiver())
-        self.load_extension("sound_manager.cog")
+        self.load_extension("beatrice.sound_manager.cog")
         self.manager = self.cogs["SoundManagerCog"]
 
     async def _receiver(self):
@@ -66,32 +64,8 @@ class SoundManagerBot(commands.Bot):
             self._read_loop.cancel()
         await self.close()
 
-    # async def play(self, voice_channel: int, audio_channel: str, audio_file: str, override=False):
-    #     voice_channel = self.get_channel(voice_channel)
-    #     connection = await voice_channel.connect()
-    #     connection.play(FFmpegPCMAudio(audio_file))
-    #     while connection.is_playing():
-    #         await asyncio.sleep(1)
-    #     await connection.disconnect()
-
-
-async def start_bot_async(config, pipe):
-    try:
-        bot = SoundManagerBot(pipe, config)
-        await bot.start(config["token"])
-    except KeyboardInterrupt:
-        pass
-    finally:
-        await bot.on_close()
-    print("bot func ended???")
-
 
 def start_bot(config, pipe):
     bot = SoundManagerBot(pipe, config)
-    # loop = asyncio.get_event_loop()
-    # try:
-    #     loop.run_until_complete(bot.start(config["token"]))
-    # except KeyboardInterrupt:
-    #     loop.run_until_complete(bot.on_close())
     bot.run(config["token"])
     print("bot func ended???")

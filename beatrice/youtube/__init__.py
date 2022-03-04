@@ -1,7 +1,6 @@
-import nextcord
 from nextcord.ext import commands
 from yt_dlp import YoutubeDL
-from sound_manager import AudioFile
+from beatrice.sound_manager import AudioFile
 
 
 class Youtube(commands.Cog):

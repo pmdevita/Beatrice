@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "Beatrice"
+version = "0.1.0"
+description = ""
+authors = ["Peter DeVita <mewtwo2643@yahoo.com>"]
+license = "AGPL"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+nextcord = {extras = ["voice"], version = "^2.0.0-alpha.8"}
+bs4 = "^0.0.1"
+tortoise-orm = "^0.18.1"
+nextcord-tortoise = {git = "https://github.com/pmdevita/nextcord-tortoise"}
+aerich = "^0.6.2"
+lxml = "^4.8.0"
+aiomysql = "^0.0.22"
+aiohttp = "^3.8.1"
+aioconsole = "^0.4.1"
+dateparser = "^1.1.0"
+numpy = "^1.22.2"
+yt-dlp = "^2022.2.4"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+beatrice = 'beatrice.main:main'

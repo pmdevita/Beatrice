@@ -1,11 +1,7 @@
-import asyncio
-
-import nextcord
 import nextcord.ext.commands as commands
-from nextcord import FFmpegOpusAudio
 from random import choice
-from util import find_mentions, member_to_mention
-from sound_manager import AudioFile
+from beatrice.util import find_mentions, member_to_mention
+from beatrice.sound_manager import AudioFile
 
 HI_FILES = [
     ("beatrice_hi1.opus", "You come in here without knocking? What a rude one you are."),

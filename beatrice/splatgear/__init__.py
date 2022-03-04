@@ -1,12 +1,10 @@
-import nextcord_tortoise
 from nextcord.ext import commands
 from tortoise.models import Model
 from tortoise import fields
 from tortoise.queryset import Q
-from util import send_list
+from beatrice.util import send_list
 from datetime import datetime, timedelta
 from random import randrange
-import json
 
 
 class GearRequests(Model):

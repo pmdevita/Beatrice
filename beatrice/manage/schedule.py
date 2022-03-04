@@ -5,7 +5,7 @@ from random import choice
 from datetime import datetime
 import dateparser
 import platform
-from util import member_to_mention, date_countdown
+from beatrice.util import member_to_mention, date_countdown
 from tortoise.models import Model
 from tortoise import fields
 

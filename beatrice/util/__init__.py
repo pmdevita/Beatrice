@@ -1,5 +1,5 @@
 import nextcord
-from util.regex import MENTION_STRING
+from beatrice.util.regex import MENTION_STRING
 from datetime import datetime, timedelta
 
 
