@@ -2,12 +2,14 @@ import asyncio
 import dataclasses
 import time
 import traceback
+import typing
 
 import nextcord
 from nextcord import FFmpegPCMAudio, opus
 from nextcord.ext import commands
 import numpy as np
 from .data import AudioFile
+from .source import AsyncFFmpegAudio, AsyncFFmpegPCMWrapper
 
 
 class SoundManagerCog(commands.Cog):
@@ -58,11 +60,14 @@ class SoundManagerCog(commands.Cog):
                 count += 1
                 avg = total / count
                 total_offset = (count * 0.02) - (time.time() - loop_start)
-                total_wait = max(0, round(0.02 - avg + total_offset, 3))
+                total_wait = round(0.02 - avg + total_offset, 3)
                 if count % 250 == 0:
                     print("Avg time to render 20ms", avg, "current total offset", time.time() - loop_start, "waiting for", total_wait)
-                if total_wait:
-                    await asyncio.sleep(total_wait)
+                if total_wait > 0:
+                    try:
+                        await asyncio.sleep(total_wait)
+                    except asyncio.exceptions.CancelledError:
+                        break
                 if count > 9000:  # 50 * 60 * 3 minutes
                     total = avg
                     count = 1
@@ -81,7 +86,12 @@ class GuildConnection:
     async def send(self):
         data = await self.guild.read()
         if data:
-            self.connection.send_audio_packet(data, encode=True)
+            try:
+                self.connection.send_audio_packet(data, encode=True)
+            except OSError:
+                print("Forcibly disconnected from", self.guild)
+                self.guild.clear()
+                await self.guild.manager.unregister_playback(self.guild)
 
 
 class GuildAudio(nextcord.AudioSource):
@@ -101,6 +111,10 @@ class GuildAudio(nextcord.AudioSource):
         self._playing = False
         self.keep_playing = asyncio.Event()
         self.duck_manager = DuckManager(self)
+
+    def clear(self):
+        for channel in self.channels.values():
+            channel.clear()
 
     async def play_file(self, voice_channel: nextcord.VoiceChannel, audio_channel: str, audio_file: AudioFile,
                         override=False):
@@ -211,6 +225,10 @@ class AudioChannel(nextcord.AudioSource):
         else:
             return False
 
+    def clear(self):
+        self.queue.clear()
+        self.source = None
+
     async def start(self, next_event=None, override=False):
         """
 
@@ -224,7 +242,10 @@ class AudioChannel(nextcord.AudioSource):
                     self.guild.duck_manager.duck(self)
                     self.pause = True
                 print("setting source")
-                self.source = FFmpegPCMAudio(self.queue[0].file)
+                # self.source = FFmpegPCMAudio(self.queue[0].file)
+                self.source = AsyncFFmpegAudio(self.queue[0].file)
+                # self.source = AsyncFFmpegPCMWrapper(self.queue[0].file)
+                await self.source.start()
                 self.file_volume = self.queue[0].volume
                 if next_event:
                     self.next_event = next_event
@@ -252,14 +273,14 @@ class AudioChannel(nextcord.AudioSource):
             self.automation_event.set()
             self.automation_event = None
 
-    async def read(self) -> bytes:
+    async def read(self) -> typing.Optional[bytes]:
         if self.source and not self.pause:
-            data = self.source.read()
+            data = await self.source.read()
             if data:
                 arr = np.frombuffer(data, dtype=self.guild.dt)
                 # print("before", arr)
                 # arr = np.multiply(arr, .5, dtype=self.guild.dt, casting="unsafe")
-                arr = arr * .5 * self.file_volume
+                arr = arr * self.file_volume
 
                 if self.automation:
                     if self.automation.is_automating():
@@ -272,7 +293,7 @@ class AudioChannel(nextcord.AudioSource):
                 return arr.tobytes()
             else:
                 await self.next()
-        return bytes(0)
+        return None
 
 
 class VolumeAutomation:
