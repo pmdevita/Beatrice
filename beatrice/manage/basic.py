@@ -14,9 +14,10 @@ class Basic(commands.Cog):
     def __init__(self, discord):
         self.discord = discord
         self.connection = None
+        self.sound_manager = None
 
     async def __async_init__(self):
-        self.sound_manager = self.discord.cogs["SoundManager"]
+        self.sound_manager = self.discord.cogs.get("SoundManager")
 
     @commands.command("hi", aliases=["hello", "hey", "howdy", "beatrice", "beako", "betty"])
     async def hello(self, ctx: commands.Context, *args):
@@ -25,7 +26,7 @@ class Basic(commands.Cog):
         if mentions:
             member = mentions[0]
 
-        if member.voice is None:
+        if member.voice is None or not self.sound_manager:
             templates = ["Hmmmmm... hi {}.", "Yes, yes, hello {}.", "Hi {}, I guess.", "I'm busy right now {}, shoo, shoo!"]
             await ctx.send(choice(templates).format(member.display_name))
         else:
@@ -54,11 +55,11 @@ class Basic(commands.Cog):
 
     @commands.command("inhale")
     async def inhale_a_car(self, ctx: commands.Context, *args):
-        await self.sound_manager.play(ctx.author, "notifications", AudioFile("assets/inhale_a_car.opus", 5, duck=True))
+        await self.sound_manager.play(ctx.author, "notifications", AudioFile("assets/inhale_a_car.opus", 2, duck=True))
 
     @commands.command("mouthful")
     async def mouthful(self, ctx: commands.Context, *args):
-        await self.sound_manager.play(ctx.author, "notifications", AudioFile("assets/mouthful_mode.opus", 5, duck=True))
+        await self.sound_manager.play(ctx.author, "notifications", AudioFile("assets/mouthful_mode.opus", 2, duck=True))
 
     # @commands.Cog.listener("on_message")
     # async def on_message(self, message: nextcord.Message, *arg):

@@ -8,9 +8,10 @@ class Youtube(commands.Cog):
         self.bot = bot
         self.yt = YoutubeDL({"quiet": True, "no_warnings": True})
         self.selector = self.yt.build_format_selector("ba/b")
+        self.sound_manager = None
 
     async def __async_init__(self):
-        self.sound_manager = self.bot.cogs["SoundManager"]
+        self.sound_manager = self.bot.cogs.get("SoundManager")
 
     @commands.group("youtube", aliases=["yt"])
     async def yt_com_group(self, *args):
@@ -25,7 +26,7 @@ class Youtube(commands.Cog):
         print("got info")
         video = self.yt.process_ie_result(info, download=False)
         format = list(self.selector(video))
-        await self.sound_manager.play(ctx.author, "music", AudioFile(format[0]["url"], volume=0.8))
+        await self.sound_manager.play(ctx.author, "music", AudioFile(format[0]["url"], volume=1))
 
 
 def setup(bot):
