@@ -8,6 +8,9 @@ class AudioFile:
     duck: bool = False
     metadata: dict = None
     _id: int = None
+    guild: int = None
+    title: str = None
+    url: str = None
 
     def as_dict(self):
         return dataclasses.asdict(self)

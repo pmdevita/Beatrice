@@ -32,8 +32,8 @@ class Basic(commands.Cog):
         else:
             line = choice(HI_FILES)
             await ctx.send(line[1].format(member.display_name))
-            await self.sound_manager.play(member, "notifications",
-                                          AudioFile(f"assets/{line[0]}", 2, duck=True))
+            await self.sound_manager.queue(member, "notifications",
+                                           AudioFile(f"assets/{line[0]}", 2, duck=True))
 
     @commands.command(name="ping")
     async def ping(self, ctx: commands.Context):
@@ -55,11 +55,11 @@ class Basic(commands.Cog):
 
     @commands.command("inhale")
     async def inhale_a_car(self, ctx: commands.Context, *args):
-        await self.sound_manager.play(ctx.author, "notifications", AudioFile("assets/inhale_a_car.opus", 2, duck=True))
+        await self.sound_manager.queue(ctx.author, "notifications", AudioFile("assets/inhale_a_car.opus", 2, duck=True))
 
     @commands.command("mouthful")
     async def mouthful(self, ctx: commands.Context, *args):
-        await self.sound_manager.play(ctx.author, "notifications", AudioFile("assets/mouthful_mode.opus", 2, duck=True))
+        await self.sound_manager.queue(ctx.author, "notifications", AudioFile("assets/mouthful_mode.opus", 2, duck=True))
 
     # @commands.Cog.listener("on_message")
     # async def on_message(self, message: nextcord.Message, *arg):

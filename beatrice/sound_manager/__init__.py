@@ -84,7 +84,6 @@ class SoundManager(commands.Cog):
             func = self.func_callbacks.pop(command["id"])
             func.set_result(command["status"])
 
-
     async def on_close(self):
         self._cancel = True
         if self._read_loop:
@@ -94,8 +93,8 @@ class SoundManager(commands.Cog):
         self.pipe.close()
         self.chpipe.close()
 
-    async def play(self, voice_channel: nextcord.VoiceChannel, audio_channel: str, audio_file: AudioFile,
-                   override=False, play_start=None, play_end=None):
+    async def queue(self, voice_channel: nextcord.VoiceChannel, audio_channel: str, audio_file: AudioFile,
+                    override=False, play_start=None, play_end=None):
         """
 
         :param audio_file: An instance of AudioFile describing what and how to play
@@ -117,11 +116,19 @@ class SoundManager(commands.Cog):
         if play_end:
             self.play_end_callbacks[audio_file._id] = (play_end, audio_file)
         command = {
-            "command": "play",
+            "command": "queue",
             "voice_channel": voice_channel.id,
             "audio_channel": audio_channel,
             "audio_file": audio_file.as_dict(),
             "override": override
+        }
+        self.pipe.send(command)
+
+    async def play(self, guild: nextcord.Guild, audio_channel: str = None):
+        command = {
+            "command": "play",
+            "guild": guild.id,
+            "audio_channel": audio_channel
         }
         self.pipe.send(command)
 

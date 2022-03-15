@@ -48,6 +48,8 @@ class SoundManagerBot(commands.Bot):
     async def process_command(self, data):
         try:
             command = data.pop("command")
+            if command == "queue":
+                asyncio.create_task(self.manager.queue(**data))
             if command == "play":
                 asyncio.create_task(self.manager.play(**data))
             if command == "pause":
