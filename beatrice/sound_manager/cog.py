@@ -281,7 +281,7 @@ class DuckManager:
 
     async def _duck(self, main_channel):
         try:
-            print("ducking....")
+            # print("ducking....")
             next_event = asyncio.Event()
             main_channel.next_event = next_event
             self.waiting_to_play = main_channel
@@ -292,12 +292,12 @@ class DuckManager:
                 event = asyncio.Event()
                 channel.duck(1, .3, .8, event=event)
                 events.append(event)
-            print(events)
+            # print(events)
             await asyncio.gather(*[i.wait() for i in events])
-            print("finished ducking, playing")
+            # print("finished ducking, playing")
             await main_channel.play(next_event, override=True)
             await next_event.wait()
-            print("finished playing, unducking")
+            # print("finished playing, unducking")
             for channel in self.guild.channels.values():
                 if channel == main_channel:
                     continue
@@ -328,7 +328,6 @@ class AudioChannel(nextcord.AudioSource):
         else:
             self.queue.append(audio_file)
             await self.play()
-        print(self.queue)
 
     def is_playing(self):
         if self.source:
@@ -355,7 +354,6 @@ class AudioChannel(nextcord.AudioSource):
                     self.pause = True
                     self.guild.duck_manager.duck(self)
                     return
-                print("setting source")
                 # self.source = FFmpegPCMAudio(self.queue[0].file)
                 self.source = AsyncFFmpegAudio(self.queue[0].file)
                 # self.source = AsyncFFmpegPCMWrapper(self.queue[0].file)
@@ -435,7 +433,6 @@ class VolumeAutomation:
         arr = np.fromfunction(lambda x: diff * ((x + self.current) / self.samples) + self.from_target, shape=(length,))
         self.current += length
         if not self.is_automating():
-            print("automation complete")
             self.channel.automation_complete()
         return arr
 
