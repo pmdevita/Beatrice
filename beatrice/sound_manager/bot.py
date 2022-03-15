@@ -39,21 +39,31 @@ class SoundManagerBot(commands.Bot):
                 # print("but there was nothing for client")
                 continue
             data = self.pipe.recv()
-            # print("client received")
-            # print("Got data back in child process!", data)
-            command = data.get("command")
-            data.pop("command")
-            try:
-                if command:
-                    if command == "exit":
-                        await self.on_close(False)
-                        break
-                    if command == "play":
-                        await self.manager.play(**data)
-            except Exception as e:
-                print(traceback.format_exc())
-            self.pipe.send(data)
+            if data["command"] == "exit":
+                await self.on_close(False)
+                break
+            await self.process_command(data)
         print("exiting receiver")
+
+    async def process_command(self, data):
+        try:
+            command = data.pop("command")
+            if command == "play":
+                asyncio.create_task(self.manager.play(**data))
+            if command == "pause":
+                asyncio.create_task(self.manager.pause(**data))
+            if command == "stop":
+                asyncio.create_task(self.manager.stop(**data))
+            if command == "is_paused":
+                asyncio.create_task(self.manager.is_paused(**data))
+        except Exception as e:
+            print(traceback.format_exc())
+
+    async def send_command(self, data):
+        asyncio.create_task(self._send_command(data))
+
+    async def _send_command(self, data):
+        self.pipe.send(data)
 
     async def on_message(self, message):
         pass

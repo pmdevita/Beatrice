@@ -1,4 +1,7 @@
 import asyncio
+import traceback
+import typing
+
 from beatrice.settings import SOUND_CONFIG
 
 import nextcord
@@ -9,18 +12,28 @@ import multiprocessing
 
 
 class SoundManager(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot: commands.Bot):
+        self._id_counter = 0
+        self._func_counter = 0
         self.bot = bot
         self.config = self.bot.config
         self._cancel = False
         self._read_event = asyncio.Event()
         self._read_loop = None
         self.pipe, self.chpipe = multiprocessing.Pipe(True)
-        bot_config = {
+        self.bot_config = {
             "token": self.config["general"]["token"]
         }
-        bot_config.update(SOUND_CONFIG)
-        self.process = multiprocessing.Process(target=start_bot, args=(bot_config, self.chpipe))
+        self.bot_config.update(SOUND_CONFIG)
+        self.play_start_callbacks = {}
+        self.play_end_callbacks = {}
+        self.pause_callbacks = {}
+        self.pause_channel_callbacks = {}
+        self.stop_callbacks = {}
+        self.func_callbacks = {}
+
+    def start_bot(self):
+        self.process = multiprocessing.Process(target=start_bot, args=(self.bot_config, self.chpipe))
         self.process.start()
 
     async def __async_init__(self):
@@ -37,8 +50,40 @@ class SoundManager(commands.Cog):
                 # print("but there was nothing for host")
                 continue
             data = self.pipe.recv()
+            try:
+                await self.process_command(data)
+            except:
+                print(traceback.format_exc())
             # print("host received")
             # print("Got data back in main process!", data)
+
+    async def process_command(self, command):
+        if command["command"] == "play_start":
+            callback = self.play_start_callbacks[command["id"]]
+            if callback:
+                func, audio_file = callback
+                asyncio.create_task(func(audio_file))
+        if command["command"] == "play_end":
+            callback = self.play_end_callbacks[command["id"]]
+            if callback:
+                func, audio_file = callback
+                asyncio.create_task(func(audio_file))
+        if command["command"] == "pause_status":
+            guild = self.bot.get_guild(command["guild"])
+            callbacks = self.pause_callbacks.get(guild)
+            if callbacks:
+                for func in callbacks:
+                    asyncio.create_task(func(command["is_paused"]))
+        if command["command"] == "stop":
+            guild = self.bot.get_guild(command["guild"])
+            callbacks = self.pause_callbacks.get(guild)
+            if callbacks:
+                for func in callbacks:
+                    asyncio.create_task(func(command["is_paused"]))
+        if command["command"] == "is_paused":
+            func = self.func_callbacks.pop(command["id"])
+            func.set_result(command["status"])
+
 
     async def on_close(self):
         self._cancel = True
@@ -49,7 +94,8 @@ class SoundManager(commands.Cog):
         self.pipe.close()
         self.chpipe.close()
 
-    async def play(self, voice_channel: nextcord.VoiceChannel, audio_channel, audio_file: AudioFile, override=False):
+    async def play(self, voice_channel: nextcord.VoiceChannel, audio_channel: str, audio_file: AudioFile,
+                   override=False, play_start=None, play_end=None):
         """
 
         :param audio_file: An instance of AudioFile describing what and how to play
@@ -63,7 +109,13 @@ class SoundManager(commands.Cog):
                 voice_channel = voice_channel.voice.channel
             else:
                 return
-
+        if play_start or play_end:
+            audio_file._id = self._id_counter
+            self._id_counter += 1
+        if play_start:
+            self.play_start_callbacks[audio_file._id] = (play_start, audio_file)
+        if play_end:
+            self.play_end_callbacks[audio_file._id] = (play_end, audio_file)
         command = {
             "command": "play",
             "voice_channel": voice_channel.id,
@@ -73,10 +125,46 @@ class SoundManager(commands.Cog):
         }
         self.pipe.send(command)
 
+    async def pause(self, guild: nextcord.Guild, audio_channel: str = None):
+        command = {
+            "command": "pause",
+            "guild": guild.id,
+            "audio_channel": audio_channel
+        }
+        self.pipe.send(command)
 
+    async def unpause(self, guild: nextcord.Guild, audio_channel: str = None):
+        command = {
+            "command": "unpause",
+            "guild": guild.id,
+            "audio_channel": audio_channel
+        }
+        self.pipe.send(command)
+
+    async def stop(self, guild: nextcord.Guild, audio_channel: str = None):
+        command = {
+            "command": "stop",
+            "guild": guild.id,
+            "audio_channel": audio_channel
+        }
+        self.pipe.send(command)
+
+    async def is_paused(self, guild: nextcord.Guild, audio_channel: str = None):
+        command = {
+            "command": "is_paused",
+            "id": self._func_counter,
+            "guild": guild.id,
+            "audio_channel": audio_channel
+        }
+        future = self.bot.loop.create_future()
+        self.func_callbacks[self._func_counter] = future
+        self._func_counter += 1
+        self.pipe.send(command)
+        return await future
 
     def __del__(self):
-        self.on_close()
+        pass
+        # self.on_close()
 
 
 def setup(bot):

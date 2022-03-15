@@ -89,6 +89,9 @@ def main():
         from nextcord_tortoise.aerich import run_aerich
         run_aerich(client, args)
     else:
+        sm = client.cogs.get("SoundManager")
+        if sm:
+            sm.start_bot()
         client.tortoise_loop(config["general"]["token"])
 
 

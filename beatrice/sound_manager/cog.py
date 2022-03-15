@@ -29,6 +29,22 @@ class SoundManagerCog(commands.Cog):
         guild_manager = self.guilds[guild]
         await guild_manager.play_file(voice_channel, audio_channel, audio_file, override)
 
+    async def pause(self, guild: int, audio_channel: str = None):
+        try:
+            guild = self.bot.get_guild(guild)
+            guild_manager = self.guilds.get(guild)
+            await guild_manager.pause(audio_channel)
+        except:
+            print(traceback.format_exc())
+
+    async def stop(self, guild: int, audio_channel: str = None):
+        try:
+            guild = self.bot.get_guild(guild)
+            guild_manager = self.guilds.get(guild)
+            await guild_manager.stop(audio_channel)
+        except:
+            print(traceback.format_exc())
+
     async def register_playback(self, guild: 'GuildAudio', channel: nextcord.VoiceChannel):
         if guild not in self.playback_guilds:
             connection = await channel.connect()
@@ -76,6 +92,48 @@ class SoundManagerCog(commands.Cog):
             print(traceback.format_exc())
         self.playback_task = None
 
+    async def play_start_callback(self, audio_file: AudioFile):
+        if audio_file._id is not None:
+            await self.bot.send_command({
+                "command": "play_start",
+                "id": audio_file._id
+            })
+
+    async def play_end_callback(self, audio_file: AudioFile):
+        if audio_file._id is not None:
+            await self.bot.send_command({
+                "command": "play_end",
+                "id": audio_file._id
+            })
+
+    async def pause_callback(self, is_paused: bool, guild: nextcord.Guild, channel: str):
+        await self.bot.send_command({
+            "command": "pause_status",
+            "is_paused": is_paused,
+            "guild": guild.id
+        })
+
+    async def stop_callback(self, guild: nextcord.Guild):
+        await self.bot.send_command({
+            "command": "stop",
+            "guild": guild.id
+        })
+
+    async def is_paused(self, id: int, guild: id, audio_channel: str = None):
+        guild = self.bot.get_guild(id)
+        command = {
+            "command": "is_paused",
+            "id": id,
+            "status": None
+        }
+        guild_manager: GuildAudio = self.guilds.get(guild)
+        if guild_manager:
+            if audio_channel:
+                command["status"] = guild_manager.channels[audio_channel].pause
+            else:
+                command["status"] = guild_manager.is_paused
+        await self.bot.send_command(command)
+
 
 @dataclasses.dataclass
 class GuildConnection:
@@ -90,20 +148,22 @@ class GuildConnection:
                 self.connection.send_audio_packet(data, encode=True)
             except OSError:
                 print("Forcibly disconnected from", self.guild)
-                self.guild.clear()
+                await self.guild.stop()
                 await self.guild.manager.unregister_playback(self.guild)
+
+
+AUDIO_DATA_TYPE = np.dtype("<h")
+AUDIO_DATA_TYPE_INFO = np.iinfo(np.int16)
 
 
 class GuildAudio(nextcord.AudioSource):
     def __init__(self, manager: SoundManagerCog, guild: nextcord.Guild, config):
         self.manager = manager
+        self._paused = False
         self.guild = guild
         self.config = config
-        self.connection = None
-        self.channel = None
+        self.voice_channel = None
         self.channels = {}
-        self.dt = np.dtype("<h")
-        self.dt_info = np.iinfo(np.int16)
         for channel in self.config["channels"]:
             self.channels[channel] = AudioChannel(self)
 
@@ -112,22 +172,40 @@ class GuildAudio(nextcord.AudioSource):
         self.keep_playing = asyncio.Event()
         self.duck_manager = DuckManager(self)
 
-    def clear(self):
-        for channel in self.channels.values():
-            channel.clear()
+    async def stop(self, audio_channel: str = None):
+        if audio_channel:
+            self.channels[audio_channel].stop()
+        else:
+            for channel in self.channels.values():
+                channel.stop()
+        self._paused = False
+        await self._update_play()
 
     async def play_file(self, voice_channel: nextcord.VoiceChannel, audio_channel: str, audio_file: AudioFile,
                         override=False):
         audio_channel = self.channels[audio_channel]
+        self.voice_channel = voice_channel
         await audio_channel.play(audio_file, override)
-        print("queueing file", self.connection)
-        await self.manager.register_playback(self, voice_channel)
+        await self._update_play()
+
+    async def pause(self, audio_channel: str = None):
+        if audio_channel:
+            self.channels[audio_channel].pause = not self.channels[audio_channel].pause
+        else:
+            self._paused = not self._paused
+        await self._update_play()
+
+    @property
+    def is_paused(self):
+        return self._paused
 
     async def _update_play(self):
-        for channel in self.channels.values():
-            if channel.is_playing():
-                self._playing = True
-                return
+        if not self._paused:
+            for channel in self.channels.values():
+                if channel.is_playing():
+                    self._playing = True
+                    await self.manager.register_playback(self, self.voice_channel)
+                    return
         self._playing = False
         await self.manager.unregister_playback(self)
 
@@ -140,7 +218,7 @@ class GuildAudio(nextcord.AudioSource):
             await_data = await asyncio.gather(*awaitables)
             for channel_data in await_data:
                 if channel_data:
-                    data.append(np.frombuffer(channel_data, self.dt))
+                    data.append(np.frombuffer(channel_data, AUDIO_DATA_TYPE))
             if not data:
                 return bytes(0)
             if len(data) == 1:
@@ -148,7 +226,7 @@ class GuildAudio(nextcord.AudioSource):
             else:
                 final = np.stack(data)
                 final = np.add.reduce(final, 0)
-                final = np.clip(final, a_min=self.dt_info.min, a_max=self.dt_info.max)
+                final = np.clip(final, a_min=AUDIO_DATA_TYPE_INFO.min, a_max=AUDIO_DATA_TYPE_INFO.max)
                 final = final.astype(np.int16)
             return final.tobytes()
         except:
@@ -221,13 +299,14 @@ class AudioChannel(nextcord.AudioSource):
 
     def is_playing(self):
         if self.source:
-            return True
+            return not self.pause
         else:
             return False
 
-    def clear(self):
+    def stop(self):
         self.queue.clear()
         self.source = None
+        self.pause = False
 
     async def start(self, next_event=None, override=False):
         """
@@ -250,7 +329,7 @@ class AudioChannel(nextcord.AudioSource):
                 if next_event:
                     self.next_event = next_event
         else:
-            self.source = None
+            self.stop()
         await self.guild._update_play()
 
     async def next(self):
@@ -277,7 +356,7 @@ class AudioChannel(nextcord.AudioSource):
         if self.source and not self.pause:
             data = await self.source.read()
             if data:
-                arr = np.frombuffer(data, dtype=self.guild.dt)
+                arr = np.frombuffer(data, dtype=AUDIO_DATA_TYPE)
                 # print("before", arr)
                 # arr = np.multiply(arr, .5, dtype=self.guild.dt, casting="unsafe")
                 arr = arr * self.file_volume
