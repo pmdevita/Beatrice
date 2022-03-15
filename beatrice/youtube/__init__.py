@@ -95,7 +95,7 @@ class Youtube(commands.Cog):
         guild = self.bot.get_guild(audio_file.guild)
         guild_queue = self.queue[guild]
         if len(guild_queue) > 0:
-            if guild_queue[0] == guild:
+            if guild_queue[0] == audio_file:
                 guild_queue.pop(0)
         print("File finished, removing from queue")
 
