@@ -48,16 +48,9 @@ class SoundManagerBot(commands.Bot):
     async def process_command(self, data):
         try:
             command = data.pop("command")
-            if command == "queue":
-                asyncio.create_task(self.manager.queue(**data))
-            if command == "play":
-                asyncio.create_task(self.manager.play(**data))
-            if command == "pause":
-                asyncio.create_task(self.manager.pause(**data))
-            if command == "stop":
-                asyncio.create_task(self.manager.stop(**data))
-            if command == "is_paused":
-                asyncio.create_task(self.manager.is_paused(**data))
+            func = getattr(self.manager, command)
+            if func:
+                asyncio.create_task(func(**data))
         except Exception as e:
             print(traceback.format_exc())
 

@@ -11,7 +11,7 @@ HI_FILES = [
 
 
 class Basic(commands.Cog):
-    def __init__(self, discord):
+    def __init__(self, discord: commands.Bot):
         self.discord = discord
         self.connection = None
         self.sound_manager = None
@@ -31,9 +31,15 @@ class Basic(commands.Cog):
             await ctx.send(choice(templates).format(member.display_name))
         else:
             line = choice(HI_FILES)
-            await ctx.send(line[1].format(member.display_name))
             await self.sound_manager.queue(member, "notifications",
-                                           AudioFile(f"assets/{line[0]}", 2, duck=True))
+                                           AudioFile(f"assets/{line[0]}", 2, duck=True, metadata={
+                                               "text": line[1].format(member.display_name),
+                                               "channel": ctx.channel.id
+                                           }), play_start=self.hello_sound)
+
+    async def hello_sound(self, audio_file: AudioFile):
+        channel = self.discord.get_channel(audio_file.metadata["channel"])
+        await channel.send(audio_file.metadata["text"])
 
     @commands.command(name="ping")
     async def ping(self, ctx: commands.Context):

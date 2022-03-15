@@ -127,7 +127,7 @@ class SoundManagerCog(commands.Cog):
             "guild": guild.id
         })
 
-    async def is_paused(self, id: int, guild: id, audio_channel: str = None):
+    async def is_paused(self, id: int, guild: int, audio_channel: str = None):
         guild = self.bot.get_guild(guild)
         command = {
             "command": "is_paused",
@@ -141,6 +141,19 @@ class SoundManagerCog(commands.Cog):
             else:
                 command["status"] = guild_manager.is_paused
         await self.bot.send_command(command)
+
+    async def remove(self, guild: int, audio_channel: str, audio_file: dict):
+        guild = self.bot.get_guild(guild)
+        audio_file = AudioFile(**audio_file)
+        guild_manager = self.guilds.get(guild)
+        if guild_manager:
+            await guild_manager.remove(audio_channel, audio_file)
+
+    async def next(self, guild: int, audio_channel: str):
+        guild = self.bot.get_guild(guild)
+        guild_manager = self.guilds.get(guild)
+        if guild_manager:
+            await guild_manager.next(audio_channel)
 
 
 @dataclasses.dataclass
@@ -210,6 +223,12 @@ class GuildAudio(nextcord.AudioSource):
             self._paused = True
         await self._update_play()
 
+    async def remove(self, audio_channel: str, audio_file: AudioFile):
+        await self.channels[audio_channel].remove(audio_file)
+
+    async def next(self, audio_channel: str):
+        await self.channels[audio_channel].next()
+
     @property
     def is_paused(self):
         return self._paused
@@ -276,8 +295,7 @@ class DuckManager:
             print(events)
             await asyncio.gather(*[i.wait() for i in events])
             print("finished ducking, playing")
-            main_channel.pause = False
-            # self.guild.keep_playing.set()
+            await main_channel.play(next_event, override=True)
             await next_event.wait()
             print("finished playing, unducking")
             for channel in self.guild.channels.values():
@@ -330,17 +348,19 @@ class AudioChannel(nextcord.AudioSource):
         :param override: Override the wait for ducking
         :return:
         """
+        self.pause = False
         if self.queue:
             if not self.source:  # If we are already playing, don't just override it
                 if self.queue[0].duck and not override:
-                    self.guild.duck_manager.duck(self)
                     self.pause = True
+                    self.guild.duck_manager.duck(self)
+                    return
                 print("setting source")
                 # self.source = FFmpegPCMAudio(self.queue[0].file)
                 self.source = AsyncFFmpegAudio(self.queue[0].file)
-                await self.guild.manager.play_start_callback(self.queue[0])
                 # self.source = AsyncFFmpegPCMWrapper(self.queue[0].file)
                 await self.source.start()
+                await self.guild.manager.play_start_callback(self.queue[0])
                 self.file_volume = self.queue[0].volume
                 if next_event:
                     self.next_event = next_event
@@ -354,6 +374,7 @@ class AudioChannel(nextcord.AudioSource):
             self.next_event = None
         await self.guild.manager.play_end_callback(self.queue[0])
         self.queue.pop(0)
+        self.pause = False
         self.source = None
         await self.play()
 
@@ -390,6 +411,12 @@ class AudioChannel(nextcord.AudioSource):
             else:
                 await self.next()
         return None
+
+    async def remove(self, audio_file: AudioFile):
+        if self.queue[0] == audio_file:
+            await self.next()
+        else:
+            self.queue.remove(audio_file)
 
 
 class VolumeAutomation:

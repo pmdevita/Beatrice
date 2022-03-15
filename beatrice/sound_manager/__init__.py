@@ -59,12 +59,12 @@ class SoundManager(commands.Cog):
 
     async def process_command(self, command):
         if command["command"] == "play_start":
-            callback = self.play_start_callbacks[command["id"]]
+            callback = self.play_start_callbacks.get(command["id"])
             if callback:
                 func, audio_file = callback
                 asyncio.create_task(func(audio_file))
         if command["command"] == "play_end":
-            callback = self.play_end_callbacks[command["id"]]
+            callback = self.play_end_callbacks.get(command["id"])
             if callback:
                 func, audio_file = callback
                 asyncio.create_task(func(audio_file))
@@ -168,6 +168,15 @@ class SoundManager(commands.Cog):
         self._func_counter += 1
         self.pipe.send(command)
         return await future
+
+    async def remove(self, guild: nextcord.Guild, audio_channel: str, audio_file: AudioFile):
+        command = {
+            "command": "remove",
+            "guild": guild.id,
+            "audio_file": audio_file.as_dict(),  # todo: apparently it just pickles stuff through the connection so
+            "audio_channel": audio_channel       # this is unnecessary???
+        }
+        self.pipe.send(command)
 
     def __del__(self):
         pass
