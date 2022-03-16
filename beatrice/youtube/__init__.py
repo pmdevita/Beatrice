@@ -137,7 +137,7 @@ class Youtube(commands.Cog):
     async def next_command(self, ctx: commands.Context, *args):
         queue = self.queue[ctx.guild]
         if len(queue) > 0:
-            self.sound_manager.next(ctx.guild, "music")
+            await self.sound_manager.next(ctx.guild, "music")
 
     @yt_com_group.command("remove")
     async def remove_command(self, ctx: commands.Context, *args):

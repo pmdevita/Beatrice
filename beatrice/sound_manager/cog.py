@@ -70,8 +70,8 @@ class SoundManagerCog(commands.Cog):
     async def playback(self):
         try:
             print("starting playback loop")
-            total = 0
             count = 0
+            avg = RollingAverage(500, 0)
             loop_start = time.time()
             while True:
                 if not self.playback_guilds:
@@ -80,20 +80,19 @@ class SoundManagerCog(commands.Cog):
                 start = time.time()
                 await asyncio.gather(*[i.send() for i in self.playback_guilds.values()])
                 diff = time.time() - start
-                total += diff
-                count += 1
-                avg = total / count
+                avg.add(diff)
+                given_avg = avg.average()
                 total_offset = (count * 0.02) - (time.time() - loop_start)
-                total_wait = round(0.02 - avg + total_offset, 3)
+                total_wait = round(0.02 - given_avg + total_offset, 3)
+                count += 1
                 if count % 250 == 0:
-                    print("Avg time to render 20ms", avg, "current total offset", time.time() - loop_start, "waiting for", total_wait)
+                    print("Avg time to render 20ms", given_avg, "current total offset", time.time() - loop_start, "waiting for", total_wait)
                 if total_wait > 0:
                     try:
                         await asyncio.sleep(total_wait)
                     except asyncio.exceptions.CancelledError:
                         break
                 if count > 9000:  # 50 * 60 * 3 minutes
-                    total = avg
                     count = 1
                     loop_start = time.time()
         except:
@@ -154,6 +153,27 @@ class SoundManagerCog(commands.Cog):
         guild_manager = self.guilds.get(guild)
         if guild_manager:
             await guild_manager.next(audio_channel)
+
+
+class RollingAverage:
+    def __init__(self, size, weight):
+        self.size = size
+        self.weight = weight
+        self.index = 0
+        self.array = np.zeros(self.size, dtype=np.float)
+        self.total = 0
+
+    def add(self, value):
+        self.array[self.index] = value
+        self.index += 1
+        if self.total < self.size:
+            self.total += 1
+        if self.index >= self.size:
+            self.index = 0
+
+    def average(self):
+        return np.sum(self.array) / self.total
+
 
 
 @dataclasses.dataclass

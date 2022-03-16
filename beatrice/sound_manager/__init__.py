@@ -178,6 +178,14 @@ class SoundManager(commands.Cog):
         }
         self.pipe.send(command)
 
+    async def next(self, guild: nextcord.Guild, audio_channel: str):
+        command = {
+            "command": "next",
+            "guild": guild.id,
+            "audio_channel": audio_channel
+        }
+        self.pipe.send(command)
+
     def __del__(self):
         pass
         # self.on_close()
