@@ -67,6 +67,18 @@ class SoundManagerCog(commands.Cog):
             await self.playback_guilds[guild].connection.disconnect()
             del self.playback_guilds[guild]
 
+    @commands.Cog.listener("on_voice_state_update")
+    async def on_voice_state_update(self, member: nextcord.Member, before: nextcord.VoiceState, after: nextcord.VoiceState):
+        guild = member.guild
+        guild_manager = self.guilds.get(guild)
+        if guild_manager:
+            guild_connection = self.playback_guilds.get(guild_manager)
+            if guild_connection:
+                if after.channel == guild_connection.channel:
+                    await guild_manager.pause()
+                    await asyncio.sleep(1)
+                    await guild_manager.play()
+
     async def playback(self):
         try:
             print("starting playback loop")
@@ -236,12 +248,12 @@ class GuildAudio(nextcord.AudioSource):
             self._paused = False
         await self._update_play()
 
-    async def pause(self, audio_channel: str = None):
+    async def pause(self, audio_channel: str = None, unregister=True):
         if audio_channel:
             self.channels[audio_channel].pause = True
         else:
             self._paused = True
-        await self._update_play()
+        await self._update_play(unregister=unregister)
 
     async def remove(self, audio_channel: str, audio_file: AudioFile):
         await self.channels[audio_channel].remove(audio_file)
@@ -253,7 +265,7 @@ class GuildAudio(nextcord.AudioSource):
     def is_paused(self):
         return self._paused
 
-    async def _update_play(self):
+    async def _update_play(self, unregister=True):
         if not self._paused:
             for channel in self.channels.values():
                 if channel.is_playing():
@@ -261,7 +273,8 @@ class GuildAudio(nextcord.AudioSource):
                     await self.manager.register_playback(self, self.voice_channel)
                     return
         self._playing = False
-        await self.manager.unregister_playback(self)
+        if unregister:
+            await self.manager.unregister_playback(self)
 
     async def read(self) -> bytes:
         try:
