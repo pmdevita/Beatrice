@@ -1,15 +1,21 @@
 import asyncio
+import concurrent.futures
 import dataclasses
 import time
 import traceback
 import typing
 
 import nextcord
-from nextcord import FFmpegPCMAudio, opus
 from nextcord.ext import commands
 import numpy as np
 from .data import AudioFile
-from .source import AsyncFFmpegAudio, AsyncFFmpegPCMWrapper
+from nextcord import FFmpegPCMAudio, opus
+
+if not opus.is_loaded():
+    print("loading opus...")
+    opus._load_default()
+    print("opus loaded")
+from .source import AsyncFFmpegAudio, AsyncFFmpegPCMWrapper, AsyncVoiceClient, AsyncEncoder
 
 
 class SoundManagerCog(commands.Cog):
@@ -18,16 +24,23 @@ class SoundManagerCog(commands.Cog):
         self.guilds = {}
         self.playback_guilds = {}
         self.playback_task = None
+        self.encode_thread_pool = concurrent.futures.ThreadPoolExecutor()
+        # self.encode_thread_pool = concurrent.futures.ProcessPoolExecutor()
+        if not opus.is_loaded():
+            opus._load_default()
 
     async def queue(self, voice_channel: int, audio_channel: str, audio_file: dict, override=False):
-        voice_channel = self.bot.get_channel(voice_channel)
-        guild = voice_channel.guild
-        audio_file = AudioFile(**audio_file)
-        if guild not in self.guilds:
-            self.guilds[guild] = GuildAudio(self, guild, self.bot.config)
+        try:
+            voice_channel = self.bot.get_channel(voice_channel)
+            guild = voice_channel.guild
+            audio_file = AudioFile(**audio_file)
+            if guild not in self.guilds:
+                self.guilds[guild] = GuildAudio(self, guild, self.bot.config)
 
-        guild_manager = self.guilds[guild]
-        await guild_manager.queue_file(voice_channel, audio_channel, audio_file, override)
+            guild_manager = self.guilds[guild]
+            await guild_manager.queue_file(voice_channel, audio_channel, audio_file, override)
+        except:
+            print(traceback.format_exc())
 
     async def play(self, guild: int, audio_channel: str = None):
         try:
@@ -55,8 +68,9 @@ class SoundManagerCog(commands.Cog):
 
     async def register_playback(self, guild: 'GuildAudio', channel: nextcord.VoiceChannel):
         if guild not in self.playback_guilds:
-            connection = await channel.connect()
-            connection.encoder = opus.Encoder()
+            connection = await channel.connect(cls=AsyncVoiceClient)
+            connection.encoder = AsyncEncoder(self.encode_thread_pool, self.bot.loop)
+            # connection = None
             self.playback_guilds[guild] = GuildConnection(guild, channel, connection)
 
         if not self.playback_task:
@@ -187,18 +201,22 @@ class RollingAverage:
         return np.sum(self.array) / self.total
 
 
-
 @dataclasses.dataclass
 class GuildConnection:
     guild: 'GuildAudio'
     channel: nextcord.VoiceChannel
-    connection: nextcord.VoiceClient = None
+    connection: AsyncVoiceClient = None
+    buffer: bytes = None
+
+    async def prepare(self):
+        data = await self.guild.read()
+        self.buffer = await self.connection.encode()
 
     async def send(self):
         data = await self.guild.read()
         if data:
             try:
-                self.connection.send_audio_packet(data, encode=True)
+                await self.connection.send_audio_packet(data, encode=True)
             except OSError:
                 print("Forcibly disconnected from", self.guild)
                 await self.guild.stop()
@@ -428,7 +446,8 @@ class AudioChannel(nextcord.AudioSource):
                 arr = np.frombuffer(data, dtype=AUDIO_DATA_TYPE)
                 # print("before", arr)
                 # arr = np.multiply(arr, .5, dtype=self.guild.dt, casting="unsafe")
-                arr = arr * self.file_volume
+                if self.file_volume != 1:
+                    arr = arr * self.file_volume
 
                 if self.automation:
                     if self.automation.is_automating():

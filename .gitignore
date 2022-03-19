@@ -3,6 +3,8 @@
 venv
 config.ini
 db.sqlite3
+db.sqlite3-shm
+db.sqlite3-wal
 aerich.ini
 *.sqlite3
 cogs.conf

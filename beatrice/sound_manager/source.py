@@ -1,15 +1,13 @@
+import array
 import asyncio
+import ctypes
 import io
 import logging
-from nextcord.types.voice import (
-        GuildVoiceState as GuildVoiceStatePayload,
-        VoiceServerUpdate as VoiceServerUpdatePayload,
-        SupportedModes,
-    )
-from nextcord.utils import MISSING
+import typing
 
 import nextcord
 from nextcord import opus
+from nextcord.opus import Encoder, _lib, c_int16_ptr
 
 
 class AsyncFFmpegAudio(nextcord.AudioSource):
@@ -53,61 +51,23 @@ _log = logging.getLogger(__name__)
 
 
 class AsyncVoiceClient(nextcord.VoiceClient):
-    async def on_voice_server_update(self, data: VoiceServerUpdatePayload) -> None:
-        if self._voice_server_complete.is_set():
-            _log.info('Ignoring extraneous voice server update.')
-            return
+    async def prepare_audio_packet(self, data: bytes, *, encode: bool = True) -> None:
+        self.checked_add('sequence', 1, 65535)
+        if encode:
+            encoded_data = await self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME)
+        else:
+            encoded_data = data
+        packet = self._get_voice_packet(encoded_data)
+        self.checked_add('timestamp', opus.Encoder.SAMPLES_PER_FRAME, 4294967295)
+        return packet
 
-        self.token = data.get('token')
-        self.server_id = int(data['guild_id'])
-        endpoint = data.get('endpoint')
-
-        if endpoint is None or self.token is None:
-            _log.warning('Awaiting endpoint... This requires waiting. ' \
-                        'If timeout occurred considering raising the timeout and reconnecting.')
-            return
-
-        self.endpoint, _, _ = endpoint.rpartition(':')
-        if self.endpoint.startswith('wss://'):
-            # Just in case, strip it off since we're going to add it later
-            self.endpoint = self.endpoint[6:]
-
-        # This gets set later
-        self.endpoint_ip = MISSING
-
-        self.socket = asyncio.open_connection()
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.socket.setblocking(False)
-
-        if not self._handshaking:
-            # If we're not handshaking then we need to terminate our previous connection in the websocket
-            await self.ws.close(4000)
-            return
-
-        self._voice_server_complete.set()
-
-    async def disconnect(self, *, force: bool = False) -> None:
-        """|coro|
-
-        Disconnects this voice client from voice.
-        """
-        if not force and not self.is_connected():
-            return
-
-        self.stop()
-        self._connected.clear()
-
+    async def actually_send_audio_packet(self, packet: bytes):
         try:
-            if self.ws:
-                await self.ws.close()
+            self.socket.sendto(packet, (self.endpoint_ip, self.voice_port))
+        except BlockingIOError:
+            _log.warning('A packet has been dropped (seq: %s, timestamp: %s)', self.sequence, self.timestamp)
 
-            await self.voice_disconnect()
-        finally:
-            self.cleanup()
-            if self.socket:
-                self.socket.close()
-
-    def send_audio_packet(self, data: bytes, *, encode: bool = True) -> None:
+    async def send_audio_packet(self, data: bytes, *, encode: bool = True) -> None:
         """Sends an audio packet composed of the data.
 
         You must be connected to play audio.
@@ -129,13 +89,54 @@ class AsyncVoiceClient(nextcord.VoiceClient):
 
         self.checked_add('sequence', 1, 65535)
         if encode:
-            encoded_data = self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME)
+            encoded_data = await self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME)
+            if not encoded_data:
+                return
         else:
             encoded_data = data
         packet = self._get_voice_packet(encoded_data)
         try:
             self.socket.sendto(packet, (self.endpoint_ip, self.voice_port))
+            # await self.async_socket.send(packet)
         except BlockingIOError:
             _log.warning('A packet has been dropped (seq: %s, timestamp: %s)', self.sequence, self.timestamp)
 
         self.checked_add('timestamp', opus.Encoder.SAMPLES_PER_FRAME, 4294967295)
+
+
+class AsyncEncoder(Encoder):
+    def __init__(self, executor, loop: asyncio.AbstractEventLoop):
+        super().__init__()
+        self.executor = executor
+        self.loop = loop
+
+    def actually_encode(self, pcm: bytes, frame_size: int):
+        max_data_bytes = len(pcm)
+        # bytes can be used to reference pointer
+        pcm_ptr = ctypes.cast(pcm, c_int16_ptr)  # type: ignore
+        data = (ctypes.c_char * max_data_bytes)()
+        ret = _lib.opus_encode(self._state, pcm_ptr, frame_size, data, max_data_bytes)
+        return ret
+
+    async def encode(self, pcm: bytes, frame_size: int) -> typing.Optional[bytes]:
+        max_data_bytes = len(pcm)
+        # bytes can be used to reference pointer
+        pcm_ptr = ctypes.cast(pcm, c_int16_ptr)  # type: ignore
+        data = (ctypes.c_char * max_data_bytes)()
+        # print("encoding...")
+        # ret = await self.loop.run_in_executor(self.executor, self.actually_encode, pcm, frame_size)
+        # task = self.loop.run_in_executor(self.executor, _lib.opus_encode, self._state, pcm_ptr, frame_size, data,
+        #                                       max_data_bytes)
+        ret = await self.loop.run_in_executor(self.executor, _lib.opus_encode, self._state, pcm_ptr, frame_size, data,
+                                              max_data_bytes)
+        # ret = _lib.opus_encode(self._state, pcm_ptr, frame_size, data, max_data_bytes)
+
+        # try:
+        #     ret = await asyncio.wait_for(task, timeout=0.020)
+        # except asyncio.TimeoutError:
+        #     print("Hey it didn't finish!!!!")
+        #     return None
+        # print("encoded!")
+
+        # array can be initialized with bytes but mypy doesn't know
+        return array.array('b', data[:ret]).tobytes()  # type: ignore
