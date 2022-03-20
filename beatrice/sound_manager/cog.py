@@ -362,7 +362,7 @@ class AudioChannel(nextcord.AudioSource):
     def __init__(self, guild: GuildAudio):
         self.guild = guild
         self.queue = []
-        self.source = None
+        self.source: AsyncFFmpegAudio = None
         self.file_volume = 1
         self.automation = None
         self.automation_event = None
@@ -388,7 +388,9 @@ class AudioChannel(nextcord.AudioSource):
 
     def stop(self):
         self.queue.clear()
-        self.source = None
+        if self.source:
+            self.source.close()
+            self.source = None
         self.pause = False
 
     async def play(self, next_event=None, override=False):
@@ -424,7 +426,9 @@ class AudioChannel(nextcord.AudioSource):
         await self.guild.manager.play_end_callback(self.queue[0])
         self.queue.pop(0)
         self.pause = False
-        self.source = None
+        if self.source:
+            self.source.close()
+            self.source = None
         await self.play()
 
     def duck(self, from_target, to_target, seconds, event: asyncio.Event = None):

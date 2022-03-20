@@ -18,7 +18,7 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
 
     async def start(self):
         args = ["ffmpeg", "-i", self._source, '-f', 's16le', '-ar', '48000', '-ac', '2', '-loglevel', 'warning', "-"]
-        self._process = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE)
+        self._process = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE, stdin=asyncio.subprocess.PIPE)
 
     async def read(self) -> bytes:
         data = await self._process.stdout.read(3840)
@@ -31,12 +31,19 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
                 data += bytes(3840 - len(data))  # todo: would be better to do within numpy
             return data
 
-    def cleanup(self) -> None:
+    def close(self) -> None:
         if self._process:
             try:
-                self._process.terminate()
+                print("Terminating...")
+                # IDK why it needs to be killed but terminating doesn't work. Maybe we need to communicate() and read
+                # out all of the data so it can terminate?
+                self._process.kill()
             except ProcessLookupError:
                 pass
+
+    def __del__(self):
+        print("Recieved delete, terminating...")
+        self.close()
 
 
 class AsyncFFmpegPCMWrapper(nextcord.FFmpegPCMAudio):
@@ -125,18 +132,17 @@ class AsyncEncoder(Encoder):
         data = (ctypes.c_char * max_data_bytes)()
         # print("encoding...")
         # ret = await self.loop.run_in_executor(self.executor, self.actually_encode, pcm, frame_size)
-        # task = self.loop.run_in_executor(self.executor, _lib.opus_encode, self._state, pcm_ptr, frame_size, data,
-        #                                       max_data_bytes)
-        ret = await self.loop.run_in_executor(self.executor, _lib.opus_encode, self._state, pcm_ptr, frame_size, data,
+        task = self.loop.run_in_executor(self.executor, _lib.opus_encode, self._state, pcm_ptr, frame_size, data,
                                               max_data_bytes)
+        # ret = await self.loop.run_in_executor(self.executor, _lib.opus_encode, self._state, pcm_ptr, frame_size, data,
+        #                                       max_data_bytes)
         # ret = _lib.opus_encode(self._state, pcm_ptr, frame_size, data, max_data_bytes)
 
-        # try:
-        #     ret = await asyncio.wait_for(task, timeout=0.020)
-        # except asyncio.TimeoutError:
-        #     print("Hey it didn't finish!!!!")
-        #     return None
-        # print("encoded!")
+        try:
+            ret = await asyncio.wait_for(task, timeout=0.020)
+        except asyncio.TimeoutError:
+            print("Hey it didn't finish!!!!")
+            return None
 
         # array can be initialized with bytes but mypy doesn't know
         return array.array('b', data[:ret]).tobytes()  # type: ignore
