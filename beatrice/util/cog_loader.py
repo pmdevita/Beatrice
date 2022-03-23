@@ -20,10 +20,10 @@ class BotFilter:
     def __init__(self, bot: Bot, perms: CogPermissions):
         self.__bot = bot
         self.__perms = perms
-        # We need to make sure the BotFilter instance, not the Bot, is passed to the cog for it's init
-        # So we monkeypatch these two functions in and ensure they use this BotFilter as self
-        # self.load_extension = lambda *args: BotBase.__dict__["load_extension"](self, *args)
-        # self._load_from_module_spec = lambda *args: BotBase.__dict__["_load_from_module_spec"](self, *args)
+        self.__cog = None
+
+    # We need to make sure the BotFilter instance, not the Bot, is passed to the cog for its init
+    # So we monkeypatch these two functions in and ensure they use this BotFilter as self
 
     def load_extension(self, *args, **kwargs):
         BotBase.__dict__["load_extension"](self, *args, **kwargs)
@@ -38,16 +38,32 @@ class BotFilter:
     def __getattr__(self, item):
         return getattr(self.__bot, item)
 
-    # def __setattr__(self, key, value):
-    #     return setattr(self.__bot, key, value)
-
     @property
     def guilds(self):
         return [g for g in self.__bot.guilds if g.id in self.__perms.guilds or self.__perms.all_guilds]
 
     def add_cog(self, cog: Cog, *args, **kwargs) -> None:
         self.__perms.loader.cog_map[cog] = self.__perms
+        self.__cog = cog
+        cog._real_inject = cog._inject
+        cog._inject = self._inject_bot
         return self.__bot.add_cog(cog, *args, **kwargs)
+
+    # Intercept inject calls to pass the BotFilter instance instead of the Bot
+    def _inject_bot(self, bot: BotBase):
+        return self.__cog._real_inject(self)
+
+    # Wrap all event listeners with a permissions filter event
+    def add_listener(self, func, name):
+        return self.__bot.add_listener(self._filter_events(func), name)
+
+    # Filter events based on whether the cog has permission for the guild
+    def _filter_events(self, func):
+        async def wrapper(*args):
+            guild_id = args[0].guild.id
+            if guild_id in self.__perms.guilds or self.__perms.all_guilds:
+                return await func(*args)
+        return wrapper
 
 
 class CogLoader:
