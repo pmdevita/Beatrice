@@ -1,12 +1,7 @@
-import asyncio
-
 import nextcord
-import nextcord.ext.commands as commands
 import configparser
 import argparse
 import logging
-
-import tortoise
 
 from .util import Utils
 from .util.timer import Timer
@@ -28,7 +23,6 @@ intents = nextcord.Intents.default()
 intents.members = True
 intents.reactions = True
 
-# extensions = config.getlist("general", "extensions")
 TORTOISE_CONFIG["connections"]["default"] = config["general"]["db_url"]
 
 
@@ -48,7 +42,7 @@ class DiscordBot(TortoiseBot):
     async def on_connect(self):
         if not self._has_inited:
             self._has_inited = True
-            self.session = aiohttp.ClientSession(headers={"User-Agent": self.config["general"]["user_agent"]})
+            # self.session = aiohttp.ClientSession(headers={"User-Agent": self.config["general"]["user_agent"]})
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")
@@ -59,24 +53,15 @@ class DiscordBot(TortoiseBot):
                 if callable(getattr(cog, "__async_init__", None)):
                     await cog.__async_init__()
 
-    async def on_close(self):
+    async def close(self) -> None:
+        await super().close()
         print("Closing")
-        await tortoise.Tortoise.close_connections()
         for cog in self.cogs.values():
             if callable(getattr(cog, "on_close", None)):
                 await cog.on_close()
 
     async def on_message(self, message):
         await self.cog_manager.process_commands(message)
-
-    def tortoise_loop(self, *args):
-        try:
-            self.loop.run_until_complete(self.start(*args))
-        except KeyboardInterrupt:
-            print("Exiting...")
-        finally:
-            self.loop.run_until_complete(self.on_close())
-            self.loop.close()
 
 
 def main():
@@ -92,7 +77,7 @@ def main():
         sm = client.cogs.get("SoundManager")
         if sm:
             sm.start_bot()
-        client.tortoise_loop(config["general"]["token"])
+        client.run(config["general"]["token"])
 
 
 if __name__ == '__main__':

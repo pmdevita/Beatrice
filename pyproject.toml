@@ -7,7 +7,7 @@ license = "AGPL"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-nextcord = {extras = ["voice"], version = "^2.0.0-alpha.8"}
+nextcord = {extras = ["voice"], version = "~2.0.0-alpha"}
 bs4 = "^0.0.1"
 tortoise-orm = "^0.18.1"
 nextcord-tortoise = {git = "https://github.com/pmdevita/nextcord-tortoise"}
