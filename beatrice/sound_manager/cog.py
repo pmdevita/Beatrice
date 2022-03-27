@@ -187,18 +187,22 @@ class RollingAverage:
         self.weight = weight
         self.index = 0
         self.array = np.zeros(self.size, dtype=np.float)
-        self.total = 0
+        self.total_count = 0
+        self.total_value = 0
 
     def add(self, value):
+        self.total_value -= self.array[self.index]
         self.array[self.index] = value
+        self.total_value += value
+
         self.index += 1
-        if self.total < self.size:
-            self.total += 1
+        if self.total_count < self.size:
+            self.total_count += 1
         if self.index >= self.size:
             self.index = 0
 
     def average(self):
-        return np.sum(self.array) / self.total
+        return self.total_value / self.total_count
 
 
 @dataclasses.dataclass
