@@ -25,7 +25,7 @@ def register(name, aliases=None):
 
 @class_register
 class Console(commands.Cog):
-    def __init__(self, discord):
+    def __init__(self, discord: commands.Bot):
         self.discord = discord
         self.command_task = None
         self.commands = {}
@@ -68,6 +68,15 @@ class Console(commands.Cog):
     async def cogs(self):
         print(self.discord.cogs)
 
+    @register("users")
+    async def users(self, guild_id):
+        guild = self.discord.get_guild(int(guild_id))
+        print(guild.members)
+
+    @register("channels")
+    async def channels(self, guild_id):
+        guild = self.discord.get_guild(int(guild_id))
+        print(guild.channels)
 
 def setup(bot):
     bot.add_cog(Console(bot))
