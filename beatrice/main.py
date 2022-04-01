@@ -22,6 +22,7 @@ with open("config.ini", "r", encoding="utf-8") as f:
 intents = nextcord.Intents.default()
 intents.members = True
 intents.reactions = True
+intents.guilds = True
 
 TORTOISE_CONFIG["connections"]["default"] = config["general"]["db_url"]
 
