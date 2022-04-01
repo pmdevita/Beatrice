@@ -1,4 +1,5 @@
 import asyncio
+import traceback
 from datetime import datetime, timedelta
 import pytz
 import weakref
@@ -9,20 +10,25 @@ from zoneinfo import ZoneInfo
 # What are tasks for? https://stackoverflow.com/questions/57966935/asyncio-task-vs-coroutine
 
 class TimerTask:
-    def __init__(self, timer, time: datetime, callback, repeat=None):
+    def __init__(self, timer, time: datetime, callback, args=None, kwargs=None, repeat=None):
         self.timer = timer
         self.time = time
         self._callback = weakref.WeakMethod(callback)
         self.repeat = repeat
         self._cancelled = False
         self._run = False
+        self.args = args if args else []
+        self.kwargs = kwargs if kwargs else {}
 
     async def callback(self):
         if self._cancelled:
             print("Warning: Callback was attempted on a cancelled task!!!", self._callback)
         callback = self._callback()
         if callback is not None:
-            await callback()
+            try:
+                await callback(*self.args, **self.kwargs)
+            except:
+                print(traceback.format_exc())
         if self.repeat:
             self.time += self.repeat
             # Readd instead of recreate so API doesn't lose handler to the task
@@ -108,10 +114,10 @@ class Timer:
         await self._balance_tasks()
         self._running_task = None
 
-    def schedule_task(self, time: datetime, callback, repeat: timedelta = None):
+    def schedule_task(self, time: datetime, callback, repeat: timedelta = None, args: list = None, kwargs: dict = None):
         if time.tzinfo is None:
             time = time.astimezone(self.timezone)
-        task = TimerTask(self, time, callback, repeat)
+        task = TimerTask(self, time, callback, repeat=repeat, args=args, kwargs=kwargs)
         self.tasks.append(task)
         self._tasks_dirty = True
         self._balancing_task = asyncio.ensure_future(self._balance_tasks())
