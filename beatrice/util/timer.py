@@ -2,6 +2,7 @@ import asyncio
 from datetime import datetime, timedelta
 import pytz
 import weakref
+from nextcord.ext import commands
 from zoneinfo import ZoneInfo
 
 
@@ -34,6 +35,9 @@ class TimerTask:
         return self._run
 
     def cancel(self):
+        self._cancel()
+
+    def _cancel(self, unregister=True):
         if self._cancelled:
             print("Warning: Callback was cancelled twice!!!", self._callback)
             return
@@ -42,7 +46,8 @@ class TimerTask:
             print(self.timer.tasks)
             return
         self._cancelled = True
-        self.timer.cancel(self)
+        if unregister:
+            self.timer.cancel(self)
 
     def __repr__(self):
         return f"TimerTask({self.time}, {self._callback})"
@@ -53,8 +58,9 @@ class TimerTask:
 
 
 class Timer:
-    def __init__(self, discord):
+    def __init__(self, discord: commands.Bot):
         self.discord = discord
+        self.discord.add_listener(self.close, "on_close")
         self.tasks = []
         self.task_dict = {}
         self._tasks_dirty = False
@@ -119,4 +125,15 @@ class Timer:
     def cancel(self, task):
         self.tasks.remove(task)
         self._tasks_dirty = True
-        self._balancing_task = asyncio.ensure_future(self._balance_tasks())
+        try:
+            self._balancing_task = asyncio.ensure_future(self._balance_tasks())
+        except RuntimeError as e:
+            print("Tried scheduling balancing after task cancel, got", e)
+
+    async def close(self):
+        print("asdf")
+        while len(self.tasks):
+            task = self.tasks.pop(0)
+            task._cancel(unregister=False)
+
+

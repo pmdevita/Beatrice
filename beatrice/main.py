@@ -30,9 +30,9 @@ class DiscordBot(TortoiseBot):
     def __init__(self, *args, **kwargs):
         self.config = config
         self.utils = Utils(self)
-        self.timer = Timer(self)
         self.cog_manager = CogLoader(self, config["general"]["cogs"])
         super().__init__(*args, **kwargs)
+        self.timer = Timer(self)
         self._has_inited = False
         self._has_inited_cogs = False
 
@@ -54,6 +54,7 @@ class DiscordBot(TortoiseBot):
                     await cog.__async_init__()
 
     async def close(self) -> None:
+        self.dispatch("close")
         await super().close()
         print("Closing")
         for cog in self.cogs.values():
