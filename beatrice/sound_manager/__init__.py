@@ -84,7 +84,8 @@ class SoundManager(commands.Cog):
             func = self.func_callbacks.pop(command["id"])
             func.set_result(command["status"])
 
-    async def on_close(self):
+    @commands.Cog.listener("on_close")
+    async def close_bot(self):
         self._cancel = True
         if self._read_loop:
             self._read_loop.cancel()

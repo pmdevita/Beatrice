@@ -5,8 +5,8 @@ import asyncio
 
 def class_register(cls):
     cls._commands = {}
-    for methodname in dir(cls):
-        method = getattr(cls, methodname)
+    for method_name in dir(cls):
+        method = getattr(cls, method_name)
         if hasattr(method, '_prop'):
             cls._commands[method._prop["name"]] = method
             if method._prop["aliases"]:
@@ -19,6 +19,7 @@ def register(name, aliases=None):
     def wrapper(func):
         func._prop = {"name": name, "aliases": aliases}
         return func
+
     return wrapper
 
 
@@ -46,8 +47,8 @@ class Console(commands.Cog):
         i = 0
         while i < len(command_tokens):
             while command_tokens[i][0] == "\"" and command_tokens[i][-1] != "\"" and i < len(command_tokens) - 1:
-                command_tokens[i] = command_tokens[i] + " " + command_tokens[i+1]
-                command_tokens.pop(i+1)
+                command_tokens[i] = command_tokens[i] + " " + command_tokens[i + 1]
+                command_tokens.pop(i + 1)
             if command_tokens[i][0] == "\"" and command_tokens[i][-1] == "\"":
                 command_tokens[i] = command_tokens[i][1: -1]
             i += 1
@@ -66,10 +67,6 @@ class Console(commands.Cog):
     @register("cogs")
     async def cogs(self):
         print(self.discord.cogs)
-
-
-
-
 
 
 def setup(bot):

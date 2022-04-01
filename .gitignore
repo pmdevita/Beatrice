@@ -10,3 +10,5 @@ aerich.ini
 cogs.conf
 __pycache__
 assets/
+chat training/*.json
+chat training/**/*.json

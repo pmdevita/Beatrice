@@ -42,7 +42,7 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
                 pass
 
     def __del__(self):
-        print("Recieved delete, terminating...")
+        print("Received delete, terminating...")
         self.close()
 
 
