@@ -60,8 +60,15 @@ class BotFilter:
     # Filter events based on whether the cog has permission for the guild
     def _filter_events(self, func):
         async def wrapper(*args):
-            guild_id = args[0].guild.id
-            if guild_id in self.__perms.guilds or self.__perms.all_guilds:
+            if len(args):
+                try:
+                    guild_id = args[0].guild.id
+                except AttributeError as e:
+                    print("Failed to filter event", args)
+                    return await func(*args)
+                if guild_id in self.__perms.guilds or self.__perms.all_guilds:
+                    return await func(*args)
+            else:
                 return await func(*args)
         return wrapper
 
