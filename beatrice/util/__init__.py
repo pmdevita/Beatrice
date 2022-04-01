@@ -1,5 +1,5 @@
 import nextcord
-from beatrice.util.regex import MENTION_STRING
+from beatrice.util.regex import MENTION_STRING, CHANNEL_STRING
 from datetime import datetime, timedelta
 
 
@@ -17,6 +17,17 @@ async def find_mentions(guild: nextcord.Guild, string):
     if mention:
         for i in mention:
             members.append(await guild.fetch_member(i))
+    return members
+
+
+async def find_channels(bot: nextcord.Client, string):
+    if isinstance(string, list) or isinstance(string, tuple):
+        string = " ".join(string)
+    members = []
+    mention = CHANNEL_STRING.findall(string)
+    if mention:
+        for i in mention:
+            members.append(bot.get_channel(int(i)))
     return members
 
 
