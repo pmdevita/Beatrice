@@ -12,9 +12,9 @@ from .data import AudioFile
 from nextcord import FFmpegPCMAudio, opus
 
 if not opus.is_loaded():
-    print("loading opus...")
+    # print("loading opus...")
     opus._load_default()
-    print("opus loaded")
+    # print("opus loaded")
 from .source import AsyncFFmpegAudio, AsyncFFmpegPCMWrapper, AsyncVoiceClient, AsyncEncoder
 
 

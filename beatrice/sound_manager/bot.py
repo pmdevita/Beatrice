@@ -43,7 +43,7 @@ class SoundManagerBot(commands.Bot):
                 await self.on_close(False)
                 break
             await self.process_command(data)
-        print("exiting receiver")
+        print("Sound manager shutting down...")
 
     async def process_command(self, data):
         try:
@@ -73,4 +73,4 @@ class SoundManagerBot(commands.Bot):
 def start_bot(config, pipe):
     bot = SoundManagerBot(pipe, config)
     bot.run(config["token"])
-    print("bot func ended???")
+    print("Sound manager exited loop")

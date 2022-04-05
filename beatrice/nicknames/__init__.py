@@ -5,7 +5,8 @@ from .. import util
 from .models import NicknameGroup, Nickname
 
 transformer_map = {
-    "pokemon": ".transformers.unscramblers.Pokemon"
+    "pokemon": ".transformers.unscramblers.Pokemon",
+    "greg": ".transformers.randomizers.Greg"
 }
 
 
@@ -68,11 +69,20 @@ class Nicknames(commands.Cog):
     @nickname_group.command("clear")
     @commands.has_permissions(manage_nicknames=True)
     async def clear_command(self, ctx: commands.Context, *args):
+        clear_group = False
+        if args:
+            clear_group = args[0]
+
         async with ctx.typing():
             async for member in ctx.guild.fetch_members():
                 try:
-                    if member.nick is not None:
-                        await member.edit(nick=None)
+                    if clear_group:
+                        nick = Nickname.filter(group=clear_group, user_id=member.id).first()
+                        if nick:
+                            await member.edit(nick=None)
+                    else:
+                        if member.nick is not None:
+                            await member.edit(nick=None)
                         # pass
                 except nx_errors.Forbidden:
                     await member.send(f"Clear your nickname.")
@@ -100,7 +110,11 @@ class Nicknames(commands.Cog):
             transformer = transfomer_class(self)
             await transformer.async_init()
 
-            user_objs = await util.get_recent_users(ctx.guild)
+            if len(args) > 1:
+                if "all" in args[1:]:
+                    user_objs = ctx.guild.members
+                else:
+                    user_objs = await util.get_recent_users(ctx.guild)
             users = []
             for user in user_objs:
                 users.append((user.name, user.id))
