@@ -14,7 +14,7 @@ class Nicknames(commands.Cog):
     def __init__(self, discord):
         self.discord = discord
 
-    @commands.group("nicknames", alias=["nn"])
+    @commands.group("nicknames", aliases=["nn"])
     async def nickname_group(self, *args):
         pass
 

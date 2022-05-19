@@ -3,7 +3,7 @@ from nextcord.ext import commands
 import re
 from ..util import member_to_mention
 
-REGEX = re.compile("https://media\.discordapp\.net([/\.\w]+\.(mp4|webm|mov))")
+REGEX = re.compile("https://media\.discordapp\.net([/.\w-]+\.(?:mp4|webm|mov))")
 
 
 class MediaToCDN(commands.Cog):
