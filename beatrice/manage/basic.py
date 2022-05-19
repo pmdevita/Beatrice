@@ -1,3 +1,5 @@
+import re
+import nextcord
 import nextcord.ext.commands as commands
 from random import choice
 from beatrice.util import find_mentions, member_to_mention
@@ -8,6 +10,8 @@ HI_FILES = [
     ("beatrice_hi2.opus", "You're irritating me to death. Either stop it or get blown away."),
     ("beatrice_hi3.opus", "You come in here every day without even knocking. You truly have no manners whatsoever.")
 ]
+
+DIABETES = re.compile("my family history has diabetes", re.I)
 
 
 class Basic(commands.Cog):
@@ -67,9 +71,10 @@ class Basic(commands.Cog):
     async def mouthful(self, ctx: commands.Context, *args):
         await self.sound_manager.queue(ctx.author, "notifications", AudioFile("assets/mouthful_mode.opus", 2, duck=True))
 
-    # @commands.Cog.listener("on_message")
-    # async def on_message(self, message: nextcord.Message, *arg):
-    #     print("got message", message)
+    @commands.Cog.listener("on_message")
+    async def on_message(self, message: nextcord.Message, *arg):
+        if DIABETES.findall(message.content):
+            await message.channel.send("(There is diabetes in my family history).")
 
 
 def setup(bot):
