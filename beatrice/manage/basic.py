@@ -73,7 +73,7 @@ class Basic(commands.Cog):
     async def on_message(self, message: nextcord.Message, *arg):
         result = DIABETES.findall(message.content)
         if result:
-            await message.channel.send(f"(There is {result[0]} in my family history)")
+            await message.channel.send(f"(There is {result[0].lower()} in my family history)")
 
 
 def setup(bot):

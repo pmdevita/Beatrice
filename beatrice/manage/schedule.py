@@ -33,9 +33,9 @@ class Alarm:
         await self.channel.send(self.message)
         await self.schedule.delete_alarm(self.num)
 
-    def __del__(self):
-        if not self.timer.has_run:
-            self.timer.cancel()
+    # def __del__(self):
+    #     if not self.timer.has_run:te
+    #         self.timer.cancel()
 
     def __repr__(self):
         return self.__str__()
