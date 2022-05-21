@@ -11,7 +11,7 @@ HI_FILES = [
     ("beatrice_hi3.opus", "You come in here every day without even knocking. You truly have no manners whatsoever.")
 ]
 
-DIABETES = re.compile("my family history has diabetes", re.I)
+DIABETES = re.compile("my family history has (\w+)", re.I)
 
 
 class Basic(commands.Cog):
@@ -51,17 +51,15 @@ class Basic(commands.Cog):
         await ctx.send(f"Hey stop that! ({round(self.discord.latency * 1000)}ms)")
 
     @commands.command(name="ban")
-    async def ban(self, ctx: commands.Context, *args):
-        mentions = await find_mentions(ctx.guild, args)
-        if mentions:
-            member = mentions[0]
-            video_url = "https://cdn.discordapp.com/attachments/651901952053084175/939772862301081680/beatriceban.mov"
-            text = f"You're in big trouble {await member_to_mention(member)}, I suppose! {video_url}"
-            # embed = nextcord.Embed(description=text,
-            #                        url=video_url)
-            await ctx.send(text)
-        else:
+    async def ban(self, ctx: commands.Context, *, member: nextcord.Member = None):
+        if not member:
             await ctx.send(f"Who?")
+            return
+        video_url = "https://cdn.discordapp.com/attachments/651901952053084175/939772862301081680/beatriceban.mov"
+        text = f"You're in big trouble {await member_to_mention(member)}, I suppose! {video_url}"
+        # embed = nextcord.Embed(description=text,
+        #                        url=video_url)
+        await ctx.send(text)
 
     @commands.command("inhale")
     async def inhale_a_car(self, ctx: commands.Context, *args):
@@ -73,8 +71,9 @@ class Basic(commands.Cog):
 
     @commands.Cog.listener("on_message")
     async def on_message(self, message: nextcord.Message, *arg):
-        if DIABETES.findall(message.content):
-            await message.channel.send("(There is diabetes in my family history).")
+        result = DIABETES.findall(message.content)
+        if result:
+            await message.channel.send(f"(There is {result[0]} in my family history)")
 
 
 def setup(bot):
