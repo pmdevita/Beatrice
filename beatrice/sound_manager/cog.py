@@ -29,7 +29,10 @@ class SoundManagerCog(commands.Cog):
         self.playback_guilds = {}
         self.playback_task = None
         self.encode_thread_pool = concurrent.futures.ThreadPoolExecutor()
-        self.file_manager = AsyncFileManager(Path(self.bot.config.get("cache_path", None)))
+        cache_path = self.bot.config.get("cache_path", None)
+        if cache_path:
+            cache_path = Path(cache_path)
+        self.file_manager = AsyncFileManager(cache_path)
         # self.encode_thread_pool = concurrent.futures.ProcessPoolExecutor()
         if not opus.is_loaded():
             opus._load_default()
