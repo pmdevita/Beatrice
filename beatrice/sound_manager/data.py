@@ -1,4 +1,7 @@
 import dataclasses
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .async_file import AsyncFile
 
 
 @dataclasses.dataclass
@@ -11,6 +14,8 @@ class AudioFile:
     guild: int = None
     title: str = None
     url: str = None
+    async_file: "AsyncFile" = None
+    cache_name: str = None
 
     def as_dict(self):
         return dataclasses.asdict(self)

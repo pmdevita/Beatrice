@@ -3,35 +3,105 @@ import asyncio
 import ctypes
 import io
 import logging
+import signal
+import traceback
 import typing
-
+import os
 import nextcord
 from nextcord import opus
 from nextcord.opus import Encoder, _lib, c_int16_ptr
+from .async_file import AsyncFile
 
 
 class AsyncFFmpegAudio(nextcord.AudioSource):
-    def __init__(self, source):
+    def __init__(self, source: AsyncFile):
         self._source = source
         self._process = None
         self._buffer = io.BytesIO()
+        self.read_task = None
+        self.pause_lock = None
 
     async def start(self):
-        args = ["ffmpeg", "-i", self._source, '-f', 's16le', '-ar', '48000', '-ac', '2', '-loglevel', 'warning', "-"]
-        self._process = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE, stdin=asyncio.subprocess.PIPE)
+        args = ["ffmpeg", "-i", "pipe:0", '-f', 's16le', '-ar', '48000', '-ac', '2', '-loglevel', 'warning', "-"]
+        self._process = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE,
+                                                             stdin=asyncio.subprocess.PIPE,
+                                                             start_new_session=True)
+        self.read_task = asyncio.ensure_future(self._read_task())
+
+    async def _read_task(self):
+        countdown = 10  # Every 10 reads we wait for the buffer to drain
+        print("Starting pipe from AsyncFile to FFmpeg")
+        try:
+            while True:
+                if self.pause_lock:
+                    await self.pause_lock.wait()
+                    # chunk = await self._source.read(1024)
+                    # print("chunk length", len(chunk))
+                    # await asyncio.sleep(5)
+                    # chunk = await self._source.read(1024)
+                    # print("chunk length", len(chunk))
+                    # await asyncio.sleep(5)
+
+                chunk = await self._source.read(1024)
+                # print(len(chunk))
+                if len(chunk) > 0:
+                    if countdown:
+                        countdown -= 1
+                    else:
+                        await self._process.stdin.drain()
+                        countdown = 10
+                    self._process.stdin.write(chunk)
+                    # await asyncio.sleep(.010)
+                else:
+                    if self._source.finished_reading():
+                        print("Finished reading from AsyncFile")
+                        self._process.stdin.write_eof()
+                        break
+                    # else:
+                    #     print("Not finished reading but 0 bytes back?")
+        except asyncio.exceptions.CancelledError:
+            pass
+        except:
+            print(traceback.format_exc())
 
     async def read(self) -> bytes:
+        # print("reading next chunk...")
         data = await self._process.stdout.read(3840)
+        # current_time += len(data) / 192 # in milliseconds
         if not data:
             await self._process.wait()
             self._process = None
             return bytes(0)
-        else:
-            if len(data) < 3840:
-                data += bytes(3840 - len(data))  # todo: would be better to do within numpy
-            return data
+        elif len(data) < 3840:
+            data += bytes(3840 - len(data))  # todo: would be better to do within numpy
+        # print("returning!")
+        return data
 
-    def close(self) -> None:
+    async def pause(self):
+        if self.pause_lock:
+            if not self.pause_lock.is_set():
+                return
+        self.pause_lock = asyncio.Event()
+        self._send_signal_to_task(self._process.pid, signal.SIGSTOP)
+
+    async def unpause(self):
+        if self.pause_lock:
+            self.pause_lock.set()
+            self.pause_lock = None
+        self._send_signal_to_task(self._process.pid, signal.SIGCONT)
+
+    def _send_signal_to_task(self, pid, signal):
+        try:
+            # gpid = os.getpgid(pid)  # WARNING This does not work
+            gpid = pid  # But this does!
+            print(f"Sending {signal} to process group {gpid}...")
+            # os.kill(gpid, signal)
+            os.killpg(pid, signal)
+        except:
+            print(traceback.format_exc())
+        print("Done!")
+
+    async def close(self) -> None:
         if self._process:
             try:
                 print("Terminating...")
@@ -40,10 +110,15 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
                 self._process.kill()
             except ProcessLookupError:
                 pass
+        if self.read_task:
+            self.read_task.cancel()
+        await self._source.close()
 
     def __del__(self):
         print("Received delete, terminating...")
-        self.close()
+        asyncio.ensure_future(self.close())
+        if self.read_task:
+            self.read_task.cancel()
 
 
 class AsyncFFmpegPCMWrapper(nextcord.FFmpegPCMAudio):
@@ -133,7 +208,7 @@ class AsyncEncoder(Encoder):
         # print("encoding...")
         # ret = await self.loop.run_in_executor(self.executor, self.actually_encode, pcm, frame_size)
         task = self.loop.run_in_executor(self.executor, _lib.opus_encode, self._state, pcm_ptr, frame_size, data,
-                                              max_data_bytes)
+                                         max_data_bytes)
         # ret = await self.loop.run_in_executor(self.executor, _lib.opus_encode, self._state, pcm_ptr, frame_size, data,
         #                                       max_data_bytes)
         # ret = _lib.opus_encode(self._state, pcm_ptr, frame_size, data, max_data_bytes)
