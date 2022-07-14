@@ -211,6 +211,11 @@ class GuildConnection:
                 print("Forcibly disconnected from", self.guild)
                 await self.guild.stop()
                 await self.guild.manager.unregister_playback(self.guild)
+            except TypeError:
+                print("Got a type error sending an audio packet?", type(data))
+                print(traceback.format_exc())
+                await self.guild.stop()
+                await self.guild.manager.unregister_playback(self.guild)
 
 
 AUDIO_DATA_TYPE = np.dtype("<h")

@@ -31,22 +31,18 @@ class AsyncFileManager:
         self._flush()
         for f in self.files:
             file = f()
-            if file.download_job is not None:
+            if file.download_job is not None and not file.downloaded_file:
                 current_downloads += 1
-        print(current_downloads, self.max_preload)
         if current_downloads < self.max_preload:
             downloads_left = self.max_preload - current_downloads
             for f in self.files:
-                print("Downloads left", downloads_left)
                 if downloads_left == 0:
                     break
                 file = f()
-                if file.download_job is not None:
+                if file.download_job is None and not file.downloaded_file:
                     print("Preloading", file)
                     await file.open()
                     downloads_left -= 1
-                else:
-                    print(file, "already downloading")
 
 
 class AsyncFile:
@@ -94,6 +90,7 @@ class AsyncFile:
             print("Cancelling download")
         except:
             print(traceback.format_exc())
+        asyncio.ensure_future(self.manager.preload())
         self.downloaded_file = True
 
     async def _download_with_file(self, resp, f):
