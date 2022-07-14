@@ -51,15 +51,16 @@ class Basic(commands.Cog):
         await ctx.send(f"Hey stop that! ({round(self.discord.latency * 1000)}ms)")
 
     @commands.command(name="ban")
-    async def ban(self, ctx: commands.Context, *, member: nextcord.Member = None):
+    async def ban(self, ctx: commands.Context, member: nextcord.Member = None, reason: str = None):
         if not member:
             await ctx.send(f"Who?")
             return
+        text = f"You're in big trouble {await member_to_mention(member)}, I suppose!"
         video_url = "https://cdn.discordapp.com/attachments/984306454133637170/984318182477152306/beatriceban.mov"
-        text = f"You're in big trouble {await member_to_mention(member)}, I suppose! {video_url}"
         # embed = nextcord.Embed(description=text,
         #                        url=video_url)
         await ctx.send(text)
+        await ctx.send(video_url)
 
     @commands.command("inhale")
     async def inhale_a_car(self, ctx: commands.Context, *args):
