@@ -1,7 +1,6 @@
 import nextcord
 import configparser
 import argparse
-import logging
 
 from .util import Utils
 from .util.timer import Timer
@@ -9,7 +8,6 @@ from .util.cog_loader import CogLoader
 from nextcord_tortoise import Bot as TortoiseBot
 from nextcord_tortoise import attach_argparse_group
 from .settings import CONFIG as TORTOISE_CONFIG
-import aiohttp
 
 parser = argparse.ArgumentParser(description="Discord Bot")
 attach_argparse_group(parser)
@@ -23,6 +21,7 @@ intents = nextcord.Intents.default()
 intents.members = True
 intents.reactions = True
 intents.guilds = True
+intents.message_content = True
 
 TORTOISE_CONFIG["connections"]["default"] = config["general"]["db_url"]
 
@@ -54,16 +53,14 @@ class DiscordBot(TortoiseBot):
                 if callable(getattr(cog, "__async_init__", None)):
                     await cog.__async_init__()
 
-    async def close(self) -> None:
-        self.dispatch("close")
-        await super().close()
-        print("Closing")
-        for cog in self.cogs.values():
-            if callable(getattr(cog, "on_close", None)):
-                await cog.on_close()
-
     async def on_message(self, message):
         await self.cog_manager.process_commands(message)
+
+    async def start(self, token: str, *, reconnect: bool = True) -> None:
+        if self.config["general"].get("debug", "False").lower() == "true":
+            print("Enabling Beatrice Async Debug")
+            self.loop.set_debug(True)
+        await super().start(token, reconnect=reconnect)
 
 
 def main():
@@ -80,6 +77,7 @@ def main():
         if sm:
             sm.start_bot()
         client.run(config["general"]["token"])
+        print("Beatrice exited loop")
 
 
 if __name__ == '__main__':

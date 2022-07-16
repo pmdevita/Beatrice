@@ -71,6 +71,10 @@ class SoundManagerBot(commands.Bot):
 
 
 def start_bot(config, pipe):
-    bot = SoundManagerBot(pipe, config)
-    bot.run(config["token"])
-    print("Sound manager exited loop")
+    try:
+        bot = SoundManagerBot(pipe, config)
+        bot.run(config["token"])
+        print("Sound manager exited loop")
+    except:
+        print(traceback.format_exc())
+

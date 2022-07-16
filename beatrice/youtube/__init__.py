@@ -9,9 +9,7 @@ from beatrice.sound_manager import AudioFile, SoundManager
 def _run_youtubedl(link):
     yt = YoutubeDL({"quiet": True, "no_warnings": True})
     selector = yt.build_format_selector("ba/b")
-    print("getting info")
     info = yt.extract_info(link, process=False, download=False)
-    print("got info")
     video = yt.process_ie_result(info, download=False)
     format = list(selector(video))
     return format, info
