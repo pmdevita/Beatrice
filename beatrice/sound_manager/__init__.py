@@ -25,7 +25,9 @@ class SoundManager(commands.Cog):
             "token": self.config["general"]["token"]
         }
         self.bot_config.update(SOUND_CONFIG)
-        self.bot_config.update(dict(self.config.get("sound_manager", {})))
+        config = self.config["sound_manager"]
+        if config:
+            self.bot_config.update(dict(config))
         self.play_start_callbacks = {}
         self.play_end_callbacks = {}
         self.pause_callbacks = {}

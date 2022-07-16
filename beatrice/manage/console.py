@@ -43,6 +43,8 @@ class Console(commands.Cog):
         self.command_task = asyncio.create_task(self.get_command())
 
     async def parse_command(self, command):
+        if command == "":
+            return
         command_tokens = command.split(" ")
         i = 0
         while i < len(command_tokens):
@@ -77,6 +79,12 @@ class Console(commands.Cog):
     async def channels(self, guild_id):
         guild = self.discord.get_guild(int(guild_id))
         print(guild.channels)
+
+    @register("quit")
+    async def quit(self):
+        asyncio.ensure_future(self.discord.close())
+        # await self.discord.close()
+
 
 def setup(bot):
     bot.add_cog(Console(bot))

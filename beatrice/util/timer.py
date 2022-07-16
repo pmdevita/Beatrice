@@ -137,7 +137,6 @@ class Timer:
             print("Tried scheduling balancing after task cancel, got", e)
 
     async def close(self):
-        print("asdf")
         while len(self.tasks):
             task = self.tasks.pop(0)
             task._cancel(unregister=False)

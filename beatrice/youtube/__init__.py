@@ -1,7 +1,20 @@
+import concurrent.futures
+
 import nextcord
 from nextcord.ext import commands
 from yt_dlp import YoutubeDL
 from beatrice.sound_manager import AudioFile, SoundManager
+
+
+def _run_youtubedl(link):
+    yt = YoutubeDL({"quiet": True, "no_warnings": True})
+    selector = yt.build_format_selector("ba/b")
+    print("getting info")
+    info = yt.extract_info(link, process=False, download=False)
+    print("got info")
+    video = yt.process_ie_result(info, download=False)
+    format = list(selector(video))
+    return format, info
 
 
 class AudioQueue(dict):
@@ -14,8 +27,7 @@ class AudioQueue(dict):
 class Youtube(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.yt = YoutubeDL({"quiet": True, "no_warnings": True})
-        self.selector = self.yt.build_format_selector("ba/b")
+        self.ppe = concurrent.futures.ProcessPoolExecutor()
         self.text_channels = {}
         self.sound_manager = None
         self.queue = AudioQueue()
@@ -42,11 +54,7 @@ class Youtube(commands.Cog):
     async def link_to_audio_file(self, link: str, guild: nextcord.Guild = None):
         if guild:
             guild = guild.id
-        print("getting info")
-        info = self.yt.extract_info(link, process=False, download=False)
-        print("got info")
-        video = self.yt.process_ie_result(info, download=False)
-        format = list(self.selector(video))
+        format, info = await self.bot.loop.run_in_executor(self.ppe, _run_youtubedl, link)
         if "uploader" in info:
             title = f"{info['title']} - {info['uploader']}"
         else:
@@ -168,6 +176,10 @@ class Youtube(commands.Cog):
                        "    m next - Skips to the next song in the queue\n"
                        "    m remove <link> - Removes the linked song from the queue\n"
                        "```")
+
+    @commands.Cog.listener("on_close")
+    async def close(self):
+        self.ppe.shutdown(True)
 
 
 def setup(bot):
