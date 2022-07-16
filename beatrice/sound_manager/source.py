@@ -29,29 +29,18 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
         self.read_task = asyncio.ensure_future(self._read_task())
 
     async def _read_task(self):
-        countdown = 10  # Every 10 reads we wait for the buffer to drain
         print("Starting pipe from AsyncFile to FFmpeg")
+        chunk_size = 1024 * 5
         try:
             while True:
                 if self.pause_lock:
                     await self.pause_lock.wait()
-                    # chunk = await self._source.read(1024)
-                    # print("chunk length", len(chunk))
-                    # await asyncio.sleep(5)
-                    # chunk = await self._source.read(1024)
-                    # print("chunk length", len(chunk))
-                    # await asyncio.sleep(5)
 
-                chunk = await self._source.read(1024)
+                chunk = await self._source.read(chunk_size)
                 # print(len(chunk))
                 if len(chunk) > 0:
-                    if countdown:
-                        countdown -= 1
-                    else:
-                        await self._process.stdin.drain()
-                        countdown = 10
+                    await self._process.stdin.drain()
                     self._process.stdin.write(chunk)
-                    # await asyncio.sleep(.010)
                 else:
                     if self._source.finished_reading():
                         print("Finished reading from AsyncFile")
@@ -110,6 +99,7 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
                 self._process.kill()
             except ProcessLookupError:
                 pass
+            self._process = None
         if self.read_task:
             self.read_task.cancel()
         await self._source.close()

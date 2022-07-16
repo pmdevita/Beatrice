@@ -15,7 +15,11 @@ class SoundManagerBot(commands.Bot):
         self._cancel = False
         self._read_event = asyncio.Event()
         self._read_loop = None
-        super(SoundManagerBot, self).__init__(command_prefix="disabled")
+        self._background_tasks = set()
+        super(SoundManagerBot, self).__init__(chunk_guilds_at_startup=False)
+
+    async def on_message(self, message):
+        pass
 
     async def on_ready(self):
         if not self._inited:
@@ -40,22 +44,26 @@ class SoundManagerBot(commands.Bot):
                 continue
             data = self.pipe.recv()
             if data["command"] == "exit":
-                await self.on_close(False)
+                asyncio.ensure_future(self.close())
                 break
-            await self.process_command(data)
+            task = asyncio.create_task(self.process_command(data))
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
         print("Sound manager shutting down...")
 
     async def process_command(self, data):
-        try:
             command = data.pop("command")
             func = getattr(self.manager, command)
             if func:
-                asyncio.create_task(func(**data))
-        except Exception as e:
-            print(traceback.format_exc())
+                try:
+                    await func(**data)
+                except Exception:
+                    print(traceback.format_exc())
 
     async def send_command(self, data):
-        asyncio.create_task(self._send_command(data))
+        task = asyncio.create_task(self._send_command(data))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     async def _send_command(self, data):
         self.pipe.send(data)
@@ -67,7 +75,17 @@ class SoundManagerBot(commands.Bot):
         self._cancel = True
         if cancel_read and self._read_loop:
             self._read_loop.cancel()
-        await self.close()
+        try:
+            await self.manager.close()
+        except:
+            print(traceback.format_exc())
+
+    async def start(self, token: str, *, reconnect: bool = True) -> None:
+        if self.config.get("debug", "False").lower() == "true":
+            print("Enabling SM Async Debug")
+            self.loop.set_debug(True)
+            self.loop.slow_callback_duration = 0.010
+        await super().start(token, reconnect=reconnect)
 
 
 def start_bot(config, pipe):

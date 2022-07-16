@@ -100,9 +100,7 @@ class SoundManagerCog(commands.Cog):
             guild_connection = self.playback_guilds.get(guild_manager)
             if guild_connection:
                 if after.channel == guild_connection.channel:
-                    await guild_manager.pause()
-                    await asyncio.sleep(1)
-                    await guild_manager.play()
+                    guild_connection.reset_speaking()
 
     async def playback(self):
         try:
@@ -112,7 +110,7 @@ class SoundManagerCog(commands.Cog):
             loop_start = time.time()
             while True:
                 if not self.playback_guilds:
-                    print("ending loop")
+                    print("ending playback loop")
                     break
                 start = time.time()
                 await asyncio.gather(*[i.send() for i in self.playback_guilds.values()])
@@ -135,7 +133,7 @@ class SoundManagerCog(commands.Cog):
         except:
             print(traceback.format_exc())
         self.playback_task = None
-        gc.collect()
+        # gc.collect()
 
     async def play_start_callback(self, audio_file: AudioFile):
         if audio_file._id is not None:
@@ -193,6 +191,12 @@ class SoundManagerCog(commands.Cog):
         if guild_manager:
             await guild_manager.next(audio_channel)
 
+    async def close(self):
+        for guild_connection in list(self.playback_guilds.values()):
+            await guild_connection.guild.stop()
+        if self.playback_task:
+            self.playback_task.cancel()
+
 
 @dataclasses.dataclass
 class GuildConnection:
@@ -200,6 +204,21 @@ class GuildConnection:
     channel: nextcord.VoiceChannel
     connection: AsyncVoiceClient = None
     buffer: bytes = None
+
+    def __post_init__(self):
+        self.send_audio_packet = self._send_audio_packet
+
+    async def _send_audio_packet(self, data, encode=True):
+        return await self.connection.send_audio_packet(data, encode=encode)
+
+    async def _reset_speaking(self, data, encode=True):
+        await self.connection.ws.speak(False)
+        await self.connection.ws.speak(True)
+        self.send_audio_packet = self._send_audio_packet
+        return await self._send_audio_packet(data, encode)
+
+    def reset_speaking(self):
+        self.send_audio_packet = self._reset_speaking
 
     async def prepare(self):
         data = await self.guild.read()
@@ -209,7 +228,7 @@ class GuildConnection:
         data = await self.guild.read()
         if data:
             try:
-                await self.connection.send_audio_packet(data, encode=True)
+                await self.send_audio_packet(data, encode=True)
             except OSError:
                 print("Forcibly disconnected from", self.guild)
                 await self.guild.stop()
@@ -391,7 +410,7 @@ class AudioChannel(nextcord.AudioSource):
             await self.next()
         else:
             self.queue.append(audio_file)
-            await self.play()
+            asyncio.ensure_future(self.play())
 
     def is_playing(self):
         if self.source:

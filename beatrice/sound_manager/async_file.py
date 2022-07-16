@@ -15,11 +15,17 @@ class AsyncFileManager:
         self.max_preload = max_preload
         self.session = aiohttp.ClientSession()
         self.files = []
+        self._background_tasks = set()
+
+    def start_background_task(self, coro):
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     async def open(self, audio_file: AudioFile):
         file = AsyncFile(self, audio_file)
         self.files.append(weakref.ref(file))
-        await self.preload()
+        self.start_background_task(self.preload())
         return file
 
     def _flush(self):
@@ -44,6 +50,10 @@ class AsyncFileManager:
                     await file.open()
                     downloads_left -= 1
 
+    def __del__(self):
+        for task in list(self._background_tasks):
+            task.cancel()
+
 
 class AsyncFile:
     CHUNK_SIZE = 4096
@@ -65,12 +75,11 @@ class AsyncFile:
 
     async def open(self):
         if not self.download_job:
-            self.download_job = asyncio.ensure_future(self._open())
+            self.download_job = asyncio.create_task(self._open())
 
     async def _open(self):
         try:
             if self.file_path.startswith("http"):
-                print("Acquiring file from web", self.file_path)
                 async with self.manager.session.get(self.file_path) as resp:
                     # Use file cache
                     if self.cache_name and self.manager.cache_path:
@@ -90,11 +99,10 @@ class AsyncFile:
             print("Cancelling download")
         except:
             print(traceback.format_exc())
-        asyncio.ensure_future(self.manager.preload())
+        self.manager.start_background_task(self.manager.preload())
         self.downloaded_file = True
 
     async def _download_with_file(self, resp, f):
-        print("Downloading to in-memory cache and file")
         async for chunk in resp.content.iter_chunked(self.CHUNK_SIZE):
             # print("Downloading chunk...", self.size)
             await f.write(chunk)
@@ -103,7 +111,6 @@ class AsyncFile:
             # await asyncio.sleep(.1)
 
     async def _download_only_cache(self, resp):
-        print("Downloading to in-memory cache")
         async for chunk in resp.content.iter_chunked(self.CHUNK_SIZE):
             # print("Downloading chunk...", self.size, self.buffer.getbuffer().nbytes)
             self.buffer.seek(self.buffer.getbuffer().nbytes)
