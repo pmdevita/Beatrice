@@ -315,16 +315,19 @@ version = "0.2.4"
 description = "Database integration for Nextcord with Tortoise-ORM"
 category = "main"
 optional = false
-python-versions = ">=3.8,<4.0"
+python-versions = "^3.8"
+develop = false
 
 [package.dependencies]
-aerich = ">=0.6"
-nextcord = ">=2.0,<3.0"
-tortoise-orm = ">=0.17"
+aerich = ">= 0.6"
+nextcord = "^2.0"
+tortoise-orm = ">= 0.17"
 
 [package.source]
-type = "file"
-url = "../nextcord-tortoise/dist/nextcord_tortoise-0.2.4-py3-none-any.whl"
+type = "git"
+url = "https://github.com/pmdevita/nextcord-tortoise"
+reference = "master"
+resolved_reference = "89baebfbf8542aeb943fc55bfe84cc044a373bfd"
 
 [[package]]
 name = "numpy"
@@ -553,7 +556,7 @@ websockets = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "33f8878c9138b85624df0f6eb4838db81dc624a68cafe4896cc8fa20618094fe"
+content-hash = "ab214c17e19997f0f6869999d8dda1877e0f74a5a19d2b86f9ce5deb59651ee0"
 
 [metadata.files]
 aerich = []
@@ -904,9 +907,7 @@ mutagen = [
     {file = "mutagen-1.45.1.tar.gz", hash = "sha256:6397602efb3c2d7baebd2166ed85731ae1c1d475abca22090b7141ff5034b3e1"},
 ]
 nextcord = []
-nextcord-tortoise = [
-    {file = "nextcord_tortoise-0.2.4-py3-none-any.whl", hash = "sha256:b378793dabbc5bee975cb524f3642de2ed0c6ac18a63d28ffb6c7ee4e1accc0d"},
-]
+nextcord-tortoise = []
 numpy = []
 pycparser = [
     {file = "pycparser-2.21-py2.py3-none-any.whl", hash = "sha256:8ee45429555515e1f6b185e78100aea234072576aa43ab53aefcae078162fca9"},
