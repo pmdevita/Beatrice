@@ -1,6 +1,14 @@
 import nextcord
 import configparser
 import argparse
+import asyncio
+try:
+    import uvloop
+except ImportError:
+    pass
+else:
+    print("Using uvloop")
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 from .util import Utils
 from .util.timer import Timer

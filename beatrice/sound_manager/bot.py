@@ -1,6 +1,14 @@
 import asyncio
+import multiprocessing.connection
 import traceback
 from nextcord.ext import commands
+try:
+    import uvloop
+except ImportError:
+    pass
+else:
+    print("Using uvloop")
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 
 # import logging
@@ -8,7 +16,7 @@ from nextcord.ext import commands
 
 
 class SoundManagerBot(commands.Bot):
-    def __init__(self, pipe, config):
+    def __init__(self, pipe: multiprocessing.connection.Connection, config):
         self.pipe = pipe
         self.config = config
         self._inited = False
@@ -38,18 +46,19 @@ class SoundManagerBot(commands.Bot):
             if not self.pipe.poll():
                 await self._read_event.wait()
             self._read_event.clear()
-            # print("client receiving...")
             if not self.pipe.poll():
-                # print("but there was nothing for client")
                 continue
             data = self.pipe.recv()
             if data["command"] == "exit":
                 asyncio.ensure_future(self.close())
                 break
-            task = asyncio.create_task(self.process_command(data))
-            self._background_tasks.add(task)
-            task.add_done_callback(self._background_tasks.discard)
+            self.start_background_task(self.process_command(data))
         print("Sound manager shutting down...")
+
+    def start_background_task(self, coro):
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     async def process_command(self, data):
             command = data.pop("command")
@@ -61,9 +70,7 @@ class SoundManagerBot(commands.Bot):
                     print(traceback.format_exc())
 
     async def send_command(self, data):
-        task = asyncio.create_task(self._send_command(data))
-        self._background_tasks.add(task)
-        task.add_done_callback(self._background_tasks.discard)
+        self.start_background_task(self._send_command(data))
 
     async def _send_command(self, data):
         self.pipe.send(data)

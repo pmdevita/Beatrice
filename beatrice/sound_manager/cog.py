@@ -29,6 +29,7 @@ class SoundManagerCog(commands.Cog):
         self.playback_guilds = {}
         self.playback_task = None
         self.encode_thread_pool = concurrent.futures.ThreadPoolExecutor()
+        self._background_tasks = set()
         cache_path = self.bot.config.get("cache_path", None)
         if cache_path:
             cache_path = Path(cache_path)
@@ -36,6 +37,11 @@ class SoundManagerCog(commands.Cog):
         # self.encode_thread_pool = concurrent.futures.ProcessPoolExecutor()
         if not opus.is_loaded():
             opus._load_default()
+
+    def start_background_task(self, coro):
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     async def queue(self, voice_channel: int, audio_channel: str, audio_file: dict, override=False):
         try:
@@ -130,6 +136,8 @@ class SoundManagerCog(commands.Cog):
                 if count > 9000:  # 50 * 60 * 3 minutes
                     count = 1
                     loop_start = time.time()
+        except asyncio.CancelledError:
+            pass
         except:
             print(traceback.format_exc())
         self.playback_task = None
@@ -301,7 +309,6 @@ class GuildAudio(nextcord.AudioSource):
         return self._paused
 
     async def _update_play(self, unregister=True):
-        print("Guild updating playback state")
         if not self._paused:
             for channel in self.channels.values():
                 if channel.is_playing():

@@ -34,6 +34,13 @@ class SoundManager(commands.Cog):
         self.pause_channel_callbacks = {}
         self.stop_callbacks = {}
         self.func_callbacks = {}
+        self._background_tasks = set()
+
+    @property
+    def _callback_id(self):
+        temp = self._func_counter
+        self._func_counter += 1
+        return temp
 
     def start_bot(self):
         self.process = multiprocessing.Process(target=start_bot, args=(self.bot_config, self.chpipe))
@@ -48,44 +55,45 @@ class SoundManager(commands.Cog):
             if not self.pipe.poll():
                 await self._read_event.wait()
             self._read_event.clear()
-            # print("host receiving...")
             if not self.pipe.poll():
-                # print("but there was nothing for host")
                 continue
             data = self.pipe.recv()
-            try:
-                await self.process_command(data)
-            except:
-                print(traceback.format_exc())
-            # print("host received")
-            # print("Got data back in main process!", data)
+            self.start_background_task(self.process_command(data))
+
+    def start_background_task(self, coro):
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     async def process_command(self, command):
-        if command["command"] == "play_start":
-            callback = self.play_start_callbacks.get(command["id"])
-            if callback:
-                func, audio_file = callback
-                asyncio.create_task(func(audio_file))
-        if command["command"] == "play_end":
-            callback = self.play_end_callbacks.get(command["id"])
-            if callback:
-                func, audio_file = callback
-                asyncio.create_task(func(audio_file))
-        if command["command"] == "pause_status":
-            guild = self.bot.get_guild(command["guild"])
-            callbacks = self.pause_callbacks.get(guild)
-            if callbacks:
-                for func in callbacks:
-                    asyncio.create_task(func(command["is_paused"]))
-        if command["command"] == "stop":
-            guild = self.bot.get_guild(command["guild"])
-            callbacks = self.pause_callbacks.get(guild)
-            if callbacks:
-                for func in callbacks:
-                    asyncio.create_task(func(command["is_paused"]))
-        if command["command"] == "is_paused":
-            func = self.func_callbacks.pop(command["id"])
-            func.set_result(command["status"])
+        try:
+            if command["command"] == "play_start":
+                callback = self.play_start_callbacks.get(command["id"])
+                if callback:
+                    func, audio_file = callback
+                    await func(audio_file)
+            if command["command"] == "play_end":
+                callback = self.play_end_callbacks.get(command["id"])
+                if callback:
+                    func, audio_file = callback
+                    await func(audio_file)
+            if command["command"] == "pause_status":
+                guild = self.bot.get_guild(command["guild"])
+                callbacks = self.pause_callbacks.get(guild)
+                if callbacks:
+                    for func in callbacks:
+                        await func(command["is_paused"])
+            if command["command"] == "stop":
+                guild = self.bot.get_guild(command["guild"])
+                callbacks = self.pause_callbacks.get(guild)
+                if callbacks:
+                    for func in callbacks:
+                        await func(command["is_paused"])
+            if command["command"] == "is_paused":
+                func = self.func_callbacks.pop(command["id"])
+                func.set_result(command["status"])
+        except:
+            print(traceback.print_exc())
 
     @commands.Cog.listener("on_close")
     async def close_bot(self):
@@ -168,8 +176,7 @@ class SoundManager(commands.Cog):
             "audio_channel": audio_channel
         }
         future = self.bot.loop.create_future()
-        self.func_callbacks[self._func_counter] = future
-        self._func_counter += 1
+        self.func_callbacks[self._callback_id] = future
         self.pipe.send(command)
         return await future
 

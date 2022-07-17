@@ -22,7 +22,9 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
         self.pause_lock = None
 
     async def start(self):
-        args = ["ffmpeg", "-i", "pipe:0", '-f', 's16le', '-ar', '48000', '-ac', '2', '-loglevel', 'warning', "-"]
+        args = ["ffmpeg", '-loglevel', 'verbose', "-i", "pipe:0",
+                "-filter:a", "loudnorm",
+                '-f', 's16le', '-ar', '48000', '-ac', '2', "-"]
         self._process = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE,
                                                              stdin=asyncio.subprocess.PIPE,
                                                              start_new_session=True)
@@ -83,14 +85,14 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
         try:
             # gpid = os.getpgid(pid)  # WARNING This does not work
             gpid = pid  # But this does!
-            print(f"Sending {signal} to process group {gpid}...")
+            # print(f"Sending {signal} to process group {gpid}...")
             # os.kill(gpid, signal)
             os.killpg(pid, signal)
         except:
             print(traceback.format_exc())
-        print("Done!")
+        # print("Done!")
 
-    async def close(self) -> None:
+    def _end_process(self):
         if self._process:
             try:
                 print("Terminating...")
@@ -100,13 +102,16 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
             except ProcessLookupError:
                 pass
             self._process = None
+
+    async def close(self) -> None:
+        self._end_process()
         if self.read_task:
             self.read_task.cancel()
         await self._source.close()
 
     def __del__(self):
         print("Received delete, terminating...")
-        asyncio.ensure_future(self.close())
+        self._end_process()
         if self.read_task:
             self.read_task.cancel()
 
