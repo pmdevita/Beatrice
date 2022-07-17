@@ -22,7 +22,7 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
         self.pause_lock = None
 
     async def start(self):
-        args = ["ffmpeg", '-loglevel', 'verbose', "-i", "pipe:0",
+        args = ["ffmpeg", '-loglevel', 'quiet', "-i", "pipe:0",
                 "-filter:a", "loudnorm",
                 '-f', 's16le', '-ar', '48000', '-ac', '2', "-"]
         self._process = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE,
@@ -213,6 +213,8 @@ class AsyncEncoder(Encoder):
         except asyncio.TimeoutError:
             print("Hey it didn't finish!!!!")
             return None
-
-        # array can be initialized with bytes but mypy doesn't know
-        return array.array('b', data[:ret]).tobytes()  # type: ignore
+        except Exception as e:
+            print("Encode error", e, len(pcm))
+        finally:
+            # array can be initialized with bytes but mypy doesn't know
+            return array.array('b', data[:ret]).tobytes()  # type: ignore

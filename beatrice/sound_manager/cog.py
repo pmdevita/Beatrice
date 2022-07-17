@@ -26,7 +26,7 @@ class SoundManagerCog(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.guilds = {}
-        self.playback_guilds = {}
+        self.playback_guilds: typing.Dict['GuildAudio', 'GuildConnection'] = {}
         self.playback_task = None
         self.encode_thread_pool = concurrent.futures.ThreadPoolExecutor()
         self._background_tasks = set()
@@ -112,30 +112,39 @@ class SoundManagerCog(commands.Cog):
         try:
             print("starting playback loop")
             count = 0
-            avg = RollingAverage(500, 0)
+            # avg = RollingAverage(500, 0)
+            send_avg = RollingAverage(250, 0)
+            send_avg.add(1)
             loop_start = time.time()
-            while True:
-                if not self.playback_guilds:
-                    print("ending playback loop")
-                    break
-                start = time.time()
-                await asyncio.gather(*[i.send() for i in self.playback_guilds.values()])
-                diff = time.time() - start
-                avg.add(diff)
-                given_avg = avg.average()
+            # start = time.time()
+            while self.playback_guilds:
+                await asyncio.gather(*[i.prepare() for i in self.playback_guilds.values()])
+                # avg.add(time.time() - start)
+                # given_avg = avg.average()
                 total_offset = (count * 0.02) - (time.time() - loop_start)
-                total_wait = round(0.02 - given_avg + total_offset, 3)
+                # total_wait = round(0.02 - given_avg + total_offset, 3)
+                total_wait = round(0.02 + total_offset, 3)
                 count += 1
-                if count % 250 == 0:
-                    print("Avg time to render 20ms", given_avg, "current total offset", time.time() - loop_start, "waiting for", total_wait)
+                if count % 250 == 1:
+                    # print("Avg time to render 20ms", given_avg, "current total offset", time.time() - loop_start,
+                    # "waiting for", total_wait, "send avg", send_avg.average())
+                    print("current total offset", time.time() - loop_start,
+                          "waiting for", total_wait, "send avg", send_avg.average())
                 if total_wait > 0:
                     try:
                         await asyncio.sleep(total_wait)
                     except asyncio.exceptions.CancelledError:
                         break
+
                 if count > 9000:  # 50 * 60 * 3 minutes
                     count = 1
                     loop_start = time.time()
+
+                start = time.time()
+                await asyncio.gather(*[i.actually_send() for i in self.playback_guilds.values()])
+                send_avg.add(time.time() - start)
+
+
         except asyncio.CancelledError:
             pass
         except:
@@ -211,32 +220,51 @@ class GuildConnection:
     guild: 'GuildAudio'
     channel: nextcord.VoiceChannel
     connection: AsyncVoiceClient = None
-    buffer: bytes = None
+    buffer: typing.Optional[bytes] = None
 
     def __post_init__(self):
         self.send_audio_packet = self._send_audio_packet
 
-    async def _send_audio_packet(self, data, encode=True):
-        return await self.connection.send_audio_packet(data, encode=encode)
+    async def _send_audio_packet(self, data):
+        return await self.connection.actually_send_audio_packet(data)
 
-    async def _reset_speaking(self, data, encode=True):
+    async def _reset_speaking(self, data):
         await self.connection.ws.speak(False)
         await self.connection.ws.speak(True)
         self.send_audio_packet = self._send_audio_packet
-        return await self._send_audio_packet(data, encode)
+        return await self._send_audio_packet(data)
 
     def reset_speaking(self):
         self.send_audio_packet = self._reset_speaking
 
     async def prepare(self):
         data = await self.guild.read()
-        self.buffer = await self.connection.encode()
+        if data:
+            self.buffer = await self.connection.prepare_audio_packet(data, encode=True)
+
+    async def actually_send(self):
+        if self.buffer:
+            try:
+                await self.send_audio_packet(self.buffer)
+            except OSError:
+                print("Forcibly disconnected from", self.guild)
+                await self.guild.stop()
+                await self.guild.manager.unregister_playback(self.guild)
+            except TypeError:
+                print("Got a type error sending an audio packet?", type(self.buffer))
+                print(traceback.format_exc())
+                await self.guild.stop()
+                await self.guild.manager.unregister_playback(self.guild)
+            self.buffer = None
+        else:
+            print("No buffer for guild", self.guild)
 
     async def send(self):
         data = await self.guild.read()
         if data:
+            buffer = await self.connection.prepare_audio_packet(data, encode=True)
             try:
-                await self.send_audio_packet(data, encode=True)
+                await self.send_audio_packet(buffer)
             except OSError:
                 print("Forcibly disconnected from", self.guild)
                 await self.guild.stop()
