@@ -29,18 +29,26 @@ class Console(commands.Cog):
         self.discord = discord
         self.command_task = None
         self.commands = {}
+        self._cancel = False
+        self._background_tasks = set()
         # self.command = Commands()
 
     async def __async_init__(self):
         self.command_task = asyncio.create_task(self.get_command())
 
+    def start_background_task(self, coro):
+        task = asyncio.create_task(coro)
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
     async def get_command(self):
-        command = await aioconsole.ainput()
-        try:
-            await self.parse_command(command)
-        except Exception as e:
-            print("Error parsing command:", e)
-        self.command_task = asyncio.create_task(self.get_command())
+        while not self._cancel:
+            command = await aioconsole.ainput()
+            try:
+                self.start_background_task(self.parse_command(command))
+            except Exception as e:
+                print("Error parsing command:", e)
+            self.command_task = asyncio.create_task(self.get_command())
 
     async def parse_command(self, command):
         if command == "":
@@ -82,6 +90,8 @@ class Console(commands.Cog):
 
     @register("quit")
     async def quit(self):
+        self._cancel = True
+        self.command_task.cancel()
         asyncio.ensure_future(self.discord.close())
         # await self.discord.close()
 
