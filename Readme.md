@@ -14,7 +14,7 @@ DateTime and TimeDelta objects.
 
 - ![Advanced audio playback](beatrice/sound_manager/cog.py) supporting multiple audio channels in a single voice 
 channel connection and supporting multiple simultaneous connections across multiple guilds, all mixed 
-and processed in realtime.
+and processed in realtime, with multi-threaded encoding/decoding and async sockets.
 
 - Beatrice Chat, a neural network fine-tuned from Microsoft's DialoGPT to talk like Beatrice.
 
@@ -85,3 +85,8 @@ Beatrice.sound_manager
 Beatrice.youtube
 ```
 
+## Notes
+
+With the addition of uvloop, a Python 3.9 bug was uncovered that causes the Sound Manager to pin a CPU core to 
+100% as soon as any audio is played. If you are using Python 3.9, it's recommended to either disable uvloop or 
+move to Python 3.10+.
