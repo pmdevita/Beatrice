@@ -48,7 +48,6 @@ class Console(commands.Cog):
                 self.start_background_task(self.parse_command(command))
             except Exception as e:
                 print("Error parsing command:", e)
-            self.command_task = asyncio.create_task(self.get_command())
 
     async def parse_command(self, command):
         if command == "":
