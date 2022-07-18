@@ -16,10 +16,12 @@ from .async_file import AsyncFile
 class AsyncFFmpegAudio(nextcord.AudioSource):
     def __init__(self, source: AsyncFile):
         self._source = source
-        self._process = None
+        self._process: typing.Optional[asyncio.subprocess] = None
         self._buffer = io.BytesIO()
         self.read_task = None
         self.pause_lock = None
+        self._beginning_buffer = bytes(0)
+        self.read = self._start_read
 
     async def start(self):
         args = ["ffmpeg", '-loglevel', 'quiet', "-i", "pipe:0",
@@ -55,7 +57,13 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
         except:
             print(traceback.format_exc())
 
-    async def read(self) -> bytes:
+    async def _start_read(self) -> bytes:
+        if len(self._process.stdout._buffer) < 3840 and self._process.returncode is None:
+            return bytes(3840)
+        self.read = self._main_read
+        return await self.read()
+
+    async def _main_read(self) -> bytes:
         # print("reading next chunk...")
         data = await self._process.stdout.read(3840)
         # current_time += len(data) / 192 # in milliseconds
@@ -65,7 +73,6 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
             return bytes(0)
         elif len(data) < 3840:
             data += bytes(3840 - len(data))  # todo: would be better to do within numpy
-        # print("returning!")
         return data
 
     async def pause(self):
