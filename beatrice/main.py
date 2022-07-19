@@ -2,6 +2,7 @@ import nextcord
 import configparser
 import argparse
 import asyncio
+import aiohttp
 try:
     import uvloop
 except ImportError:
@@ -50,7 +51,7 @@ class DiscordBot(TortoiseBot):
     async def on_connect(self):
         if not self._has_inited:
             self._has_inited = True
-            # self.session = aiohttp.ClientSession(headers={"User-Agent": self.config["general"]["user_agent"]})
+            self.session = aiohttp.ClientSession(headers={"User-Agent": self.config["general"]["user_agent"]})
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")
@@ -69,6 +70,13 @@ class DiscordBot(TortoiseBot):
             print("Enabling Beatrice Async Debug")
             self.loop.set_debug(True)
         await super().start(token, reconnect=reconnect)
+
+    async def _close_session(self):
+        await self.session.close()
+
+    async def close(self) -> None:
+        self.add_listener(self._close_session, "on_close")
+        await super().close()
 
 
 def main():

@@ -141,9 +141,10 @@ class AsyncVoiceClient(nextcord.VoiceClient):
             encoded_data = await self.encoder.encode(data, self.encoder.SAMPLES_PER_FRAME)
         else:
             encoded_data = data
-        packet = self._get_voice_packet(encoded_data)
-        self.checked_add('timestamp', opus.Encoder.SAMPLES_PER_FRAME, 4294967295)
-        return packet
+        if encoded_data:
+            packet = self._get_voice_packet(encoded_data)
+            self.checked_add('timestamp', opus.Encoder.SAMPLES_PER_FRAME, 4294967295)
+            return packet
 
     async def actually_send_audio_packet(self, packet: bytes):
         try:
@@ -194,13 +195,13 @@ class AsyncEncoder(Encoder):
         self.executor = executor
         self.loop = loop
 
-    def actually_encode(self, pcm: bytes, frame_size: int):
-        max_data_bytes = len(pcm)
-        # bytes can be used to reference pointer
-        pcm_ptr = ctypes.cast(pcm, c_int16_ptr)  # type: ignore
-        data = (ctypes.c_char * max_data_bytes)()
-        ret = _lib.opus_encode(self._state, pcm_ptr, frame_size, data, max_data_bytes)
-        return ret
+    # def actually_encode(self, pcm: bytes, frame_size: int):
+    #     max_data_bytes = len(pcm)
+    #     # bytes can be used to reference pointer
+    #     pcm_ptr = ctypes.cast(pcm, c_int16_ptr)  # type: ignore
+    #     data = (ctypes.c_char * max_data_bytes)()
+    #     ret = _lib.opus_encode(self._state, pcm_ptr, frame_size, data, max_data_bytes)
+    #     return ret
 
     async def encode(self, pcm: bytes, frame_size: int) -> typing.Optional[bytes]:
         max_data_bytes = len(pcm)
@@ -222,6 +223,6 @@ class AsyncEncoder(Encoder):
             return None
         except Exception as e:
             print("Encode error", e, len(pcm))
-        finally:
+        else:
             # array can be initialized with bytes but mypy doesn't know
             return array.array('b', data[:ret]).tobytes()  # type: ignore
