@@ -1,6 +1,7 @@
 from pathlib import Path
 from dataclasses import dataclass, field
 
+import nextcord
 from nextcord import Message, DMChannel
 from nextcord.ext.commands import Bot, Context, Cog
 from nextcord.ext.commands.bot import BotBase
@@ -61,10 +62,15 @@ class BotFilter:
     def _filter_events(self, func):
         async def wrapper(*args):
             if len(args):
+                if isinstance(args[0], nextcord.message.Message):
+                    if self.__perms.direct_messages:
+                        return await func(*args)
+                    else:
+                        return
                 try:
                     guild_id = args[0].guild.id
                 except AttributeError as e:
-                    print("Failed to filter event", args)
+                    print("Failed to filter event", args, [type(i) for i in args])
                     return await func(*args)
                 if guild_id in self.__perms.guilds or self.__perms.all_guilds:
                     return await func(*args)
