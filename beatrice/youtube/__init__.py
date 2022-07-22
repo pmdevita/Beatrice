@@ -10,9 +10,16 @@ def _run_youtubedl(link):
     yt = YoutubeDL({"quiet": True, "no_warnings": True})
     selector = yt.build_format_selector("ba/b")
     info = yt.extract_info(link, process=False, download=False)
+    # Probably won't evaluate if this happens???
+    if "formats" not in info:
+        return None, None
     video = yt.process_ie_result(info, download=False)
-    format = list(selector(video))
-    return format, info
+    try:
+        format = list(selector(video))
+        return format, info
+    except KeyError:
+        print("Error obtaining video")
+        return None, None
 
 
 class AudioQueue(dict):
@@ -53,6 +60,8 @@ class Youtube(commands.Cog):
         if guild:
             guild = guild.id
         format, info = await self.bot.loop.run_in_executor(self.ppe, _run_youtubedl, link)
+        if format is None and info is None:
+            return None
         if "uploader" in info:
             title = f"{info['title']} - {info['uploader']}"
         else:
@@ -80,7 +89,11 @@ class Youtube(commands.Cog):
         if ctx.author.voice is None:
             await ctx.send("You aren't currently in a voice channel.")
             return
-        audio_file = await self.link_to_audio_file(args[0], ctx.guild)
+        async with ctx.channel.typing():
+            audio_file = await self.link_to_audio_file(args[0], ctx.guild)
+        if audio_file is None:
+            await ctx.message.add_reaction("❔")
+            return
         if len(self.queue[ctx.guild]) > 0:
             await ctx.send(embeds=[nextcord.Embed(
                 description=f"Queued: {audio_file.as_markdown()}"
