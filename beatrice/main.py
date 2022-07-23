@@ -72,7 +72,10 @@ class DiscordBot(TortoiseBot):
         await super().start(token, reconnect=reconnect)
 
     async def _close_session(self):
-        await self.session.close()
+        try:
+            await self.session.close()
+        except AttributeError:
+            pass
 
     async def close(self) -> None:
         self.add_listener(self._close_session, "on_close")
