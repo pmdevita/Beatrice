@@ -75,5 +75,6 @@ async def send_list(send, data_list):
             message += "```"
             await send(message)
             message = "```\n"
+    message += row
     message += "```"
     await send(message)
