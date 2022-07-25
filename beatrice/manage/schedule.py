@@ -6,18 +6,20 @@ from datetime import datetime
 import dateparser
 import platform
 from beatrice.util import member_to_mention, date_countdown
-from tortoise.models import Model
-from tortoise import fields
+from nextcord_ormar import OrmarApp, AppModel
+import ormar
+
+MetaModel = OrmarApp.create_app("Schedule")
 
 
-class AlarmModel(Model):
-    id = fields.IntField(pk=True)
-    channel = fields.BigIntField()
-    time = fields.DatetimeField()
-    message = fields.TextField()
+class AlarmModel(AppModel):
+    class Meta(MetaModel):
+        tablename = "schedule_alarms"
 
-    class Meta:
-        table = "schedule_alarms"
+    id: int = ormar.Integer(primary_key=True)
+    channel: int = ormar.BigInteger()
+    time: datetime = ormar.DateTime()
+    message: str = ormar.Text()
 
 
 class Alarm:
@@ -52,7 +54,7 @@ class Schedule(commands.Cog, name="manage_schedule"):
         self._inited = False
 
     async def __async_init__(self):
-        async for alarm in AlarmModel.all():
+        for alarm in await AlarmModel.objects.all():
             channel = self.discord.get_channel(alarm.channel)
             if channel is None:
                 channel = await self.discord.create_dm(self.discord.get_user(alarm.channel))
@@ -80,7 +82,7 @@ class Schedule(commands.Cog, name="manage_schedule"):
         if isinstance(ctx.channel, nextcord.DMChannel):
             channel_id = ctx.author.id
 
-        a_row = await AlarmModel.create(channel=channel_id, time=date, message=message)
+        a_row = await AlarmModel.objects.create(channel=channel_id, time=date, message=message)
         await self.add_alarm(a_row.id, date, message, ctx.channel)
 
         templates = ["Very well, I set an alarm for {}.", "Why should I have to keep watch for you? ({})", "Hmmph! ({})"]
@@ -97,8 +99,8 @@ class Schedule(commands.Cog, name="manage_schedule"):
 
     async def delete_alarm(self, id):
         del self.alarms[id]
-        await AlarmModel.filter(id=id).delete()
+        await AlarmModel.objects.filter(id=id).delete()
 
 
 def setup(bot):
-    bot.add_cog(Schedule(bot), models=".")
+    bot.add_cog(Schedule(bot))

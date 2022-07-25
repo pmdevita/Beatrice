@@ -8,57 +8,61 @@ from beatrice.util import send_list
 from datetime import datetime, timedelta
 from random import randrange
 from enum import Enum
+from nextcord_ormar import OrmarApp, AppModel
+import ormar
+from ormar import pre_save
+
+MetaModel = OrmarApp.create_app("Splatgear")
 
 
-class Brands(Model):
-    id = fields.IntField(pk=True)
-    name = fields.CharField(max_length=30)
+class Brands(AppModel):
+    id = ormar.Integer(primary_key=True)
+    name = ormar.String(max_length=30)
 
-    class Meta:
-        table = "splatgear_brands"
+    class Meta(MetaModel):
+        tablename = "splatgear_brands"
 
 
-class Skills(Model):
-    id = fields.IntField(pk=True)
-    name = fields.CharField(max_length=30)
+class Skills(AppModel):
+    id = ormar.Integer(primary_key=True)
+    name = ormar.String(max_length=30)
 
-    class Meta:
-        table = "splatgear_skills"
+    class Meta(MetaModel):
+        tablename = "splatgear_skills"
 
 
 class GearEnum(Enum):
-    Head = "head"
-    Shoes = "shoes"
-    Clothes = "clothes"
+    head = "head"
+    shoes = "shoes"
+    clothes = "clothes"
 
 
-class Gear(Model):
-    _pid = fields.CharField(max_length=15, pk=True)
-    id = fields.IntField()
-    type = fields.CharEnumField(GearEnum)
-    name = fields.CharField(max_length=30)
+class Gear(AppModel):
+    pid: str = ormar.String(name="_pid", max_length=15, primary_key=True)
+    id: int = ormar.Integer()
+    type: GearEnum = ormar.Enum(enum_class=GearEnum)
+    name: str = ormar.String(max_length=30)
 
-    @classmethod
-    async def create(
-        cls: typing.Type[MODEL], using_db: typing.Optional[BaseDBAsyncClient] = None, **kwargs: typing.Any
-    ) -> MODEL:
-        kwargs["_pid"] = f"{kwargs['type']}_{kwargs['id']}"
-        return await super().create(**kwargs, using_db=using_db)
-
-    class Meta:
-        table = "splatgear_gear"
+    class Meta(MetaModel):
+        tablename = "splatgear_gear"
 
 
-class GearRequests(Model):
-    id = fields.IntField(pk=True)
-    user = fields.BigIntField()
-    gear = fields.ForeignKeyField("SplatGear.Gear", related_name="requests", null=True, on_delete=fields.CASCADE)
-    brand = fields.ForeignKeyField("SplatGear.Brands", related_name="requests", null=True, on_delete=fields.CASCADE)
-    skill = fields.ForeignKeyField("SplatGear.Skills", related_name="requests", null=True, on_delete=fields.CASCADE)
-    last_messaged = fields.DatetimeField()
+@pre_save(Gear)
+async def pre_save_album(sender: typing.Type[Gear], instance: Gear, **kwargs):
+    instance.pid = f"{instance.type}_{instance.id}"
 
-    class Meta:
-        table = "splatgear_requests"
+
+class GearRequests(AppModel):
+    id: int = ormar.Integer(primary_key=True)
+    user: int = ormar.BigInteger()
+    # TODO: Add delete constraints when they hit stable
+    gear: typing.Optional[Gear] = ormar.ForeignKey(Gear, name="gear_id", related_name="requests", nullable=True)
+    brand: typing.Optional[Brands] = ormar.ForeignKey(Brands, name="brand_id", related_name="requests", nullable=True)
+    skill: typing.Optional[Skills] = ormar.ForeignKey(Skills, name="skill_id", related_name="requests", nullable=True)
+    last_messaged: datetime = ormar.DateTime()
+
+    class Meta(MetaModel):
+        tablename = "splatgear_requests"
 
 
 class SplatGear(commands.Cog):
@@ -84,9 +88,9 @@ class SplatGear(commands.Cog):
             # Synchronize skills
             await self._synchronize_gear_list(data["skills"], Skills)
 
-    async def _synchronize_gear_list(self, gear_list, model: Model, gear_type=None):
+    async def _synchronize_gear_list(self, gear_list, model: typing.Type[AppModel], gear_type=None):
         gears = {int(gear): gear_list[gear]["name"] for gear in gear_list}
-        async for gear_row in model.all():
+        for gear_row in await model.objects.all():
             # If we are using types, make sure this has a matching one first
             if gear_type:
                 if gear_type != gear_row.type.value:
@@ -100,7 +104,7 @@ class SplatGear(commands.Cog):
         if gear_type:
             kwargs["type"] = gear_type
         for gear in gears:
-            await model.create(id=gear, name=gears[gear], **kwargs)
+            await model.objects.create(id=gear, name=gears[gear], **kwargs)
 
     @commands.group("splatgear")
     async def splatgear_group(self, *args):
@@ -134,22 +138,22 @@ Usage:
         skill = None
         kwargs = {"user": ctx.author.id, "last_messaged": datetime.now(self.discord.timer.timezone) - timedelta(days=2)}
         for i in args:
-            new_brand = await Brands.get_or_none(name=i)
+            new_brand = await Brands.objects.get_or_none(name__iexact=i)
             if new_brand:
                 brand = new_brand
                 kwargs["brand"] = brand
-            new_gear = await Gear.get_or_none(name=i)
+            new_gear = await Gear.objects.get_or_none(name__iexact=i)
             if new_gear:
                 gear = new_gear
                 kwargs["gear"] = gear
-            new_skill = await Skills.get_or_none(name=i)
+            new_skill = await Skills.objects.get_or_none(name__iexact=i)
             if new_skill:
                 skill = new_skill
                 kwargs["skill"] = skill
             if new_brand is None and new_gear is None and new_skill is None:
                 await ctx.send(f"Unknown property \"{i}\"")
                 return
-        gear_row = await GearRequests.create(**kwargs)
+        gear_row = await GearRequests.objects.create(**kwargs)
         await ctx.send(f"Added alert for gear with {self.format_gear_request(gear, brand, skill)}.")
 
     def format_gear_request(self, gear: typing.Optional[Gear], brand: typing.Optional[Brands], skill: typing.Optional[Skills]):
@@ -178,26 +182,26 @@ Usage:
         request_type = args[0].lower()
         if request_type == "brand" or request_type == "brands":
             with ctx.channel.typing():
-                kinds = [i.name for i in await Brands.all()]
+                kinds = [i.name for i in await Brands.objects.all()]
         elif request_type == "gear" or request_type == "gears":
             given_type = None
             gear_type = None
             if len(args) >= 2:
                 given_type = args[1].lower()
             if given_type == "clothes":
-                gear_type = GearEnum.Clothes
+                gear_type = GearEnum.clothes
             elif given_type == "shoes" or gear_type == "shoe":
-                gear_type = GearEnum.Shoes
+                gear_type = GearEnum.shoes
             elif given_type == "head" or gear_type == "hat" or gear_type == "hats":
-                gear_type = GearEnum.Head
+                gear_type = GearEnum.head
             else:
                 await ctx.send("Error: Unknown gear subtype (must be head, clothes, or shoes)")
                 return
             with ctx.channel.typing():
-                kinds = [i.name for i in await Gear.filter(type=gear_type)]
+                kinds = [i.name for i in await Gear.objects.filter(type=gear_type).all()]
         elif request_type == "skill" or request_type == "skills":
             with ctx.channel.typing():
-                kinds = [i.name for i in await Skills.all()]
+                kinds = [i.name for i in await Skills.objects.all()]
         else:
             await ctx.send(f"Error: Unknown type {args[0]}")
             return
@@ -213,21 +217,21 @@ Usage:
         for merch in data["merchandises"]:
             given_gear_type = merch["gear"]["kind"]
             if given_gear_type == "head":
-                gear_type = GearEnum.Head
+                gear_type = GearEnum.head
             elif given_gear_type == "clothes":
-                gear_type = GearEnum.Clothes
+                gear_type = GearEnum.clothes
             else:
-                gear_type = GearEnum.Shoes
-            gear = await Gear.get(id=int(merch["gear"]["id"]), type=gear_type)
-            brand = await Brands.get(id=int(merch["gear"]["brand"]["id"]))
-            skill = await Skills.get(id=int(merch["skill"]["id"]))
+                gear_type = GearEnum.shoes
+            gear = await Gear.objects.get(id=int(merch["gear"]["id"]), type=gear_type)
+            brand = await Brands.objects.get(id=int(merch["gear"]["brand"]["id"]))
+            skill = await Skills.objects.get(id=int(merch["skill"]["id"]))
 
-            rows = await GearRequests.filter(
-                Q(Q(gear=gear) | Q(gear_id=None)) &
-                Q(Q(brand=brand) | Q(brand_id=None)) &
-                Q(Q(skill=skill) | Q(skill_id=None)) &
-                Q(last_messaged__lte=datetime.now(self.discord.timer.timezone) - timedelta(hours=12))
-            ).select_related("gear", "brand", "skill")
+            rows = await GearRequests.objects.filter(
+                ((GearRequests.gear.pid == gear.pid) | (GearRequests.gear.pid.isnull(True))) &
+                ((GearRequests.brand.id == brand.id) | (GearRequests.brand.id.isnull(True))) &
+                ((GearRequests.skill.id == skill.id) | (GearRequests.skill.id.isnull(True))) &
+                (GearRequests.last_messaged <= (datetime.now(self.discord.timer.timezone) - timedelta(hours=12)))
+            ).select_related(["gear", "brand", "skill"]).all()
 
             for request in rows:
                 gear_image = self._get_image_link(merch["gear"]["image"])
@@ -276,7 +280,7 @@ Usage:
                 #     embeds.append(embed2)
                 await channel.send(embeds=embeds)
                 request.last_messaged = datetime.now(self.discord.timer.timezone)
-                await request.save()
+                await request.update()
 
     def _get_image_link(self, uri):
         return f"https://splatoon2.ink/assets/splatnet{uri}"
@@ -287,7 +291,7 @@ Usage:
             user = ctx.author.id
             message = "```\n"
             i = 1
-            async for watch in GearRequests.filter(user=user).select_related("gear", "brand", "skill"):
+            for watch in await GearRequests.objects.filter(user=user).select_related(["gear", "brand", "skill"]).all():
                 message += f"{i}: {self.format_gear_request(watch.gear, watch.brand, watch.skill)}\n"
                 i += 1
             if i == 1:
@@ -305,7 +309,7 @@ Usage:
             except ValueError:
                 await ctx.send(f"Error: {i} is not a number.")
                 return
-        rows = await GearRequests.filter(user=ctx.author.id, id__in=ids)
+        rows = await GearRequests.objects.filter(user=ctx.author.id, id__in=ids).all()
         if not rows:
             await ctx.send("Error: No watches found.")
             return
@@ -321,4 +325,4 @@ Usage:
 
 
 def setup(bot):
-    bot.add_cog(SplatGear(bot), models=".")
+    bot.add_cog(SplatGear(bot))

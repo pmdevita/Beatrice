@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Beatrice"
-version = "0.2.1"
+version = "0.3.0"
 description = ""
 authors = ["Peter DeVita <mewtwo2643@yahoo.com>"]
 license = "AGPL"
@@ -9,8 +9,7 @@ license = "AGPL"
 python = "^3.9"
 nextcord = {extras = ["voice"], version = "^2.0"}
 bs4 = "^0.0.1"
-tortoise-orm = "^0.19.2"
-nextcord-tortoise = {git = "https://github.com/pmdevita/nextcord-tortoise"}
+nextcord-ormar = {git = "https://github.com/pmdevita/nextcord-ormar"}
 aerich = "^0.6.2"
 lxml = "^4.8.0"
 aiomysql = "^0.1.1"

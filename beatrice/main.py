@@ -1,6 +1,5 @@
 import nextcord
 import configparser
-import argparse
 import asyncio
 import aiohttp
 try:
@@ -14,12 +13,8 @@ else:
 from .util import Utils
 from .util.timer import Timer
 from .util.cog_loader import CogLoader
-from nextcord_tortoise import Bot as TortoiseBot
-from nextcord_tortoise import attach_argparse_group
-from .settings import CONFIG as TORTOISE_CONFIG
+from nextcord_ormar import Bot
 
-parser = argparse.ArgumentParser(description="Discord Bot")
-attach_argparse_group(parser)
 
 config = configparser.ConfigParser(converters={'list': lambda x: [i.strip() for i in x.split("#")[0].split(',')
                                                                   if i.strip() != ""]})
@@ -32,10 +27,8 @@ intents.reactions = True
 intents.guilds = True
 intents.message_content = True
 
-TORTOISE_CONFIG["connections"]["default"] = config["general"]["db_url"]
 
-
-class DiscordBot(TortoiseBot):
+class DiscordBot(Bot):
     def __init__(self, *args, **kwargs):
         self.config = config
         self.utils = Utils(self)
@@ -82,21 +75,18 @@ class DiscordBot(TortoiseBot):
         await super().close()
 
 
+prefix = config['general']['prefix']
+prefix = prefix.replace("\"", "")
+client = DiscordBot(command_prefix=prefix, database_url=config["general"]["db_url"], intents=intents)
+client.configure()
+
+
 def main():
-    args = parser.parse_args()
-    prefix = config['general']['prefix']
-    prefix = prefix.replace("\"", "")
-    client = DiscordBot(command_prefix=prefix, tortoise_config=TORTOISE_CONFIG, intents=intents)
-    client.configure()
-    if args.aerich:
-        from nextcord_tortoise.aerich import run_aerich
-        run_aerich(client, args)
-    else:
-        sm = client.cogs.get("SoundManager")
-        if sm:
-            sm.start_bot()
-        client.run(config["general"]["token"])
-        print("Beatrice exited loop")
+    sm = client.cogs.get("SoundManager")
+    if sm:
+        sm.start_bot()
+    client.run(config["general"]["token"])
+    # print("Beatrice exited loop")
 
 
 if __name__ == '__main__':
