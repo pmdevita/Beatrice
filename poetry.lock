@@ -383,24 +383,19 @@ voice = ["PyNaCl (>=1.3.0,<1.5)"]
 
 [[package]]
 name = "nextcord-ormar"
-version = "0.3.0"
+version = "0.3.1"
 description = "Database integration for Nextcord with Tortoise-ORM"
 category = "main"
 optional = false
-python-versions = "^3.8"
-develop = false
+python-versions = ">=3.8,<4.0"
 
 [package.dependencies]
-aiosqlite = "^0.17"
-alembic = "^1.8"
-nextcord = "^2.0"
-ormar = "^0.11"
+alembic = ">=1.8,<2.0"
+nextcord = ">=2.0,<3.0"
+ormar = ">=0.11,<0.12"
 
-[package.source]
-type = "git"
-url = "https://github.com/pmdevita/nextcord-ormar"
-reference = "master"
-resolved_reference = "b2c8909cd3b0b631010e82f416d5dc0e9a18b11a"
+[package.extras]
+docs = ["six (>=1.16.0,<2.0.0)", "sphinx-argparse (>=0.3.1,<0.4.0)", "releases (>=1.6,<2.0)", "Sphinx (>=5.1,<6.0)"]
 
 [[package]]
 name = "numpy"
@@ -703,7 +698,7 @@ uvloop = ["uvloop"]
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "0c63d24988484bde95ae58faaa684d97e7f7bead0d8d659c4a5acebf93838589"
+content-hash = "32b22cde7532a9354a2549fa7a01563f71f31103a4cfafb6a25f909c8fe3be1b"
 
 [metadata.files]
 aerich = []
