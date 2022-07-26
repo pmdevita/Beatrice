@@ -24,12 +24,12 @@ class Nicknames(commands.Cog):
         if len(args) < 1:
             await ctx.send("Error: Name not given for nickname group")
             return
-        new_group = await NicknameGroup.create(group_name=args[0])
+        new_group = await NicknameGroup.objects.create(group_name=args[0])
 
         async with ctx.typing():
             async for member in ctx.guild.fetch_members():
                 if member.nick:
-                    new_nick = await Nickname.create(group=new_group, user_id=member.id, nickname=member.nick)
+                    new_nick = await Nickname.objects.create(group=new_group, user_id=member.id, nickname=member.nick)
 
         await ctx.send(f"Saved current nicknames as \"{args[0]}\".")
 
@@ -39,7 +39,7 @@ class Nicknames(commands.Cog):
         if len(args) < 1:
             await ctx.send("Error: Name not given for nickname group")
             return
-        nick_group = await NicknameGroup.get(group_name=args[0])
+        nick_group = await NicknameGroup.objects.get(group_name=args[0])
 
         override = True
         clear = False
@@ -52,7 +52,7 @@ class Nicknames(commands.Cog):
 
         async with ctx.typing():
             async for member in ctx.guild.fetch_members():
-                nick = await Nickname.filter(group=nick_group, user_id=member.id)
+                nick = await Nickname.objects.filter(group=nick_group, user_id=member.id)
                 try:
                     if nick:
                         if member.nick is None or override:
@@ -77,7 +77,7 @@ class Nicknames(commands.Cog):
             async for member in ctx.guild.fetch_members():
                 try:
                     if clear_group:
-                        nick = Nickname.filter(group=clear_group, user_id=member.id).first()
+                        nick = Nickname.objects.filter(group=clear_group, user_id=member.id).first()
                         if nick:
                             await member.edit(nick=None)
                     else:
@@ -133,4 +133,4 @@ class Nicknames(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(Nicknames(bot), models=".models")
+    bot.add_cog(Nicknames(bot))

@@ -1,18 +1,21 @@
 import json
 import nextcord
+import ormar
 from nextcord.ext import commands
-from tortoise.models import Model
-from tortoise import fields
+from nextcord_ormar import AppModel, OrmarApp
 import asyncio
 from datetime import datetime, timedelta
 
 
-class ChatThreads(Model):
-    thread_id = fields.BigIntField(pk=True)
-    history = fields.TextField()
-    last_message = fields.DatetimeField
+MetaModel = OrmarApp.create_app("chat")
 
-    class Meta:
+
+class ChatThreads(AppModel):
+    thread_id = ormar.BigInteger(primary_key=True)
+    history = ormar.Text()
+    last_message = ormar.DateTime()
+
+    class Meta(MetaModel):
         table = "chat_threads"
 
 
@@ -25,7 +28,7 @@ class ChatBot(commands.Cog):
         self.unload_job = None
 
     async def __async_init__(self):
-        stuff = await ChatThreads.all().values("thread_id", "history")
+        stuff = await ChatThreads.objects.fields(["thread_id", "history"]).all()
         for i in stuff:
             self.threads.add(i["thread_id"])
             self.histories[i["thread_id"]] = json.loads(i["history"])
@@ -33,7 +36,7 @@ class ChatBot(commands.Cog):
     @commands.command("chat")
     async def start_chat(self, ctx: commands.Context, *args):
         thread = await ctx.message.create_thread(name="Chat")
-        thread_row = await ChatThreads.create(thread_id=thread.id, history="[]")
+        thread_row = await ChatThreads.objects.create(thread_id=thread.id, history="[]")
         self.threads.add(thread.id)
         self.histories[thread.id] = []
 
@@ -82,14 +85,13 @@ class ChatBot(commands.Cog):
                 await writer.wait_closed()
 
             await message.channel.send(res[0])
-            thread = await ChatThreads.get(thread_id=message.channel.id)
+            thread = await ChatThreads.objects.get(thread_id=message.channel.id)
             thread.history = json.dumps(res[1])
-            await thread.save()
+            await thread.update()
             if self.unload_job:
                 self.unload_job.cancel()
             self.unload_job = self.discord.timer.schedule_task(datetime.now() + timedelta(minutes=5), self.unload)
 
 
-
 def setup(bot):
-    bot.add_cog(ChatBot(bot), models=".")
+    bot.add_cog(ChatBot(bot))

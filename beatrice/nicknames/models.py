@@ -1,14 +1,24 @@
-from tortoise import fields, models
+from nextcord_ormar import AppModel, OrmarApp
+import ormar
+
+MetaModel = OrmarApp.create_app("nicknames")
 
 
-class NicknameGroup(models.Model):
-    id = fields.IntField(pk=True)
-    group_name = fields.CharField(max_length=20)
+class NicknameGroup(AppModel):
+    class Meta(MetaModel):
+        tablename = "nickname"
+
+    id = ormar.Integer(primary_key=True)
+    group_name = ormar.String(max_length=20)
 
 
-class Nickname(models.Model):
-    id = fields.IntField(pk=True)
-    group = fields.ForeignKeyField("Nicknames.NicknameGroup", on_delete=fields.CASCADE)
-    user_id = fields.BigIntField()
-    nickname = fields.CharField(max_length=32)
+class Nickname(AppModel):
+    class Meta(MetaModel):
+        tablename = "nicknamegroup"
+
+    id = ormar.Integer(primary_key=True)
+    # TODO: Add Delete cascade
+    group = ormar.ForeignKey(NicknameGroup)
+    user_id = ormar.BigInteger()
+    nickname = ormar.String(max_length=32)
 
