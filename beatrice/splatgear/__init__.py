@@ -1,9 +1,6 @@
 import nextcord
 import typing
 from nextcord.ext import commands
-from tortoise.models import Model, MODEL
-from tortoise import fields, BaseDBAsyncClient
-from tortoise.queryset import Q
 from beatrice.util import send_list
 from datetime import datetime, timedelta
 from random import randrange

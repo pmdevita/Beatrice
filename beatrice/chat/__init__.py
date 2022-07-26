@@ -13,10 +13,9 @@ MetaModel = OrmarApp.create_app("chat")
 class ChatThreads(AppModel):
     thread_id = ormar.BigInteger(primary_key=True)
     history = ormar.Text()
-    last_message = ormar.DateTime()
 
     class Meta(MetaModel):
-        table = "chat_threads"
+        tablename = "chat_threads"
 
 
 class ChatBot(commands.Cog):
@@ -28,10 +27,10 @@ class ChatBot(commands.Cog):
         self.unload_job = None
 
     async def __async_init__(self):
-        stuff = await ChatThreads.objects.fields(["thread_id", "history"]).all()
+        stuff = await ChatThreads.objects.all()
         for i in stuff:
-            self.threads.add(i["thread_id"])
-            self.histories[i["thread_id"]] = json.loads(i["history"])
+            self.threads.add(i.thread_id)
+            self.histories[i.thread_id] = json.loads(i.history)
 
     @commands.command("chat")
     async def start_chat(self, ctx: commands.Context, *args):
