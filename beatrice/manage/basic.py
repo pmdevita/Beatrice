@@ -30,16 +30,17 @@ class Basic(commands.Cog):
         if mentions:
             member = mentions[0]
 
-        if member.voice is None or not self.sound_manager:
-            templates = ["Hmmmmm... hi {}.", "Yes, yes, hello {}.", "Hi {}, I guess.", "I'm busy right now {}, shoo, shoo!"]
-            await ctx.send(choice(templates).format(member.display_name))
-        else:
-            line = choice(HI_FILES)
-            await self.sound_manager.queue(member, "notifications",
-                                           AudioFile(f"assets/{line[0]}", 2, duck=True, metadata={
-                                               "text": line[1].format(member.display_name),
-                                               "channel": ctx.channel.id
-                                           }), play_start=self.hello_sound)
+        if isinstance(member, nextcord.Member):
+            if member.voice and self.sound_manager:
+                line = choice(HI_FILES)
+                await self.sound_manager.queue(member, "notifications",
+                                               AudioFile(f"assets/{line[0]}", 2, duck=True, metadata={
+                                                   "text": line[1].format(member.display_name),
+                                                   "channel": ctx.channel.id
+                                               }), play_start=self.hello_sound)
+                return
+        templates = ["Hmmmmm... hi {}.", "Yes, yes, hello {}.", "Hi {}, I guess.", "I'm busy right now {}, shoo, shoo!"]
+        await ctx.send(choice(templates).format(member.display_name))
 
     async def hello_sound(self, audio_file: AudioFile):
         channel = self.discord.get_channel(audio_file.metadata["channel"])

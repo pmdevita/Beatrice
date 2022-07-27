@@ -306,18 +306,27 @@ Usage:
             except ValueError:
                 await ctx.send(f"Error: {i} is not a number.")
                 return
-        rows = await GearRequests.objects.filter(user=ctx.author.id, id__in=ids).all()
-        if not rows:
+        ids.sort(reverse=True)
+        rows = await GearRequests.objects.filter(user=ctx.author.id).select_related(["gear", "brand", "skill"]).all()
+
+        delete_strings = []
+        for id in ids:
+            if id > len(rows):
+                continue
+            watch = rows[id - 1]
+            delete_strings.append(f"{id}: {self.format_gear_request(watch.gear, watch.brand, watch.skill)}")
+            await watch.delete()
+        delete_strings.reverse()
+
+        if not delete_strings:
             await ctx.send("Error: No watches found.")
             return
-        if len(rows) == 1:
-            message = f"Deleted watch {rows[0].id}."
-        elif len(rows) == 2:
-            message = f"Deleted watches {rows[0].id} and {rows[1].id}."
+        if len(delete_strings) == 1:
+            message = f"Deleted watch {delete_strings[0]}."
+        elif len(delete_strings) == 2:
+            message = f"Deleted watches {delete_strings[0]} and {delete_strings[1]}."
         else:
-            message = "Deleted watches " + ", ".join([str(i.id) for i in rows[:-1]]) + f", and {rows[-1].id}."
-        for row in rows:
-            await row.delete()
+            message = "Deleted watches " + ", ".join([i for i in delete_strings[:-1]]) + f", and {delete_strings[-1]}."
         await ctx.send(message)
 
 
