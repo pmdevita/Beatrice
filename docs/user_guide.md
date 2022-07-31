@@ -46,9 +46,6 @@ be capitalized and spelled properly (sorry, still haven't worked out how to make
 - `splatgear watches` - List your currently registered gear watches
 - `splatgear delete <id>` - Delete a watch associated to that ID (you can find your IDs from the `watches` command).
 
-Currently, the watches and delete commands are unfinished, so be careful or just bother 
-the bot admin to finish this up.
-
 ## Basic
 
 Some basic commands Beatrice has. These were mostly written as tests and are mostly in-character.
@@ -100,4 +97,12 @@ The current list of transformers are:
 - `nicknames rename "transformer name"` - Renames all active users (users who have messaged in the last 30 days) 
 with the given transformer.
 
+## Name Color
+
+Beatrice can generate empty roles for users to change their name color with.
+
+Command group: `namecolor`, `nc`
+
+- `namecolor change #ffffff` - Change your name color to the given hex code, `#` is optional
+- `namecolor delete` - Removes the role and reverts your name color to normal.
 
