@@ -6,7 +6,7 @@ Beatrice guards my server (or something lol).
 
 Beatrice has a number of notable technologies that were developed along with her, including:
 
-- [nextcord-tortoise](https://github.com/pmdevita/nextcord-tortoise), Easy and quick Django-like database integration 
+- [nextcord-ormar](https://github.com/pmdevita/nextcord-ormar), Easy and quick Django-like database integration 
 for Nextcord. Most apps under Beatrice had their database code written in minutes or less with this tool.
 
 - ![Efficient async timers](beatrice/util/timer.py) for apps to schedule events with optional repeats, using native 
