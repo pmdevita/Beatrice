@@ -63,10 +63,9 @@ class BotFilter:
         async def wrapper(*args):
             if len(args):
                 if isinstance(args[0], nextcord.message.Message):
-                    if self.__perms.direct_messages:
-                        return await func(*args)
-                    else:
-                        return
+                    if isinstance(args[0].channel, nextcord.DMChannel):
+                        if self.__perms.direct_messages:
+                            return await func(*args)
                 try:
                     guild_id = args[0].guild.id
                 except AttributeError as e:
