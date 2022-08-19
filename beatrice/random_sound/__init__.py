@@ -46,6 +46,8 @@ class GuildRandomSound:
 
     async def stop(self):
         self.next_sound.cancel()
+        if not self.end_playback.has_run:
+            self.end_playback.cancel()
         del self.cog.current_playback[self.guild]
 
 
@@ -83,7 +85,7 @@ class RandomSound(commands.Cog):
         if len(args) == 1:
             sound_name = args[0]
         else:
-            sound_name = args
+            sound_name = list(args)
 
         channel = ctx.author.voice.channel
 
