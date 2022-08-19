@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Beatrice"
-version = "0.3.1"
+version = "0.3.2"
 description = ""
 authors = ["Peter DeVita <mewtwo2643@yahoo.com>"]
 license = "AGPL"
