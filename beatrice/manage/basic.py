@@ -2,7 +2,7 @@ import re
 import nextcord
 import nextcord.ext.commands as commands
 from random import choice
-from beatrice.util import find_mentions, member_to_mention
+from beatrice.util import find_member_mentions, member_to_mention
 from beatrice.sound_manager import AudioFile
 
 HI_FILES = [
@@ -26,7 +26,7 @@ class Basic(commands.Cog):
     @commands.command("hi", aliases=["hello", "hey", "howdy", "beatrice", "beako", "betty"])
     async def hello(self, ctx: commands.Context, *args):
         member = ctx.author
-        mentions = await find_mentions(ctx.guild, args)
+        mentions = await find_member_mentions(ctx.guild, args)
         if mentions:
             member = mentions[0]
 
