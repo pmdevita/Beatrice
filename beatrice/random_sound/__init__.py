@@ -12,9 +12,14 @@ if TYPE_CHECKING:
     from beatrice.main import DiscordBot
 
 SOUND_BANK = {
-    "speen": "assets/speen.opus",
-    "mouthful": "assets/mouthful_mode.opus",
-    "inhale": "assets/inhale_a_car.opus"
+    "speen": "speen.opus",
+    "mouthful": "mouthful_mode.opus",
+    "inhale": "inhale_a_car.opus",
+    "pan": "tf2_pan.mp3",
+    "pipe": "metal_pipe.mp3",
+    "vineboom": "vine_boom.opus",
+    "bruh": "bruh.opus",
+    "what_the_dog_doin": "wtdd.opus"
 }
 
 MAX_TIME = 60 * 15
@@ -40,7 +45,7 @@ class GuildRandomSound:
         else:
             file = SOUND_BANK[sound_name]
 
-        await self.cog.sound_manager.queue(self.channel, "notifications", AudioFile(file, volume=1.5))
+        await self.cog.sound_manager.queue(self.channel, "notifications", AudioFile(f"assets/{file}", volume=1.5))
         self.next_sound = self.cog.bot.timer.schedule_task(datetime.now() + timedelta(seconds=randrange(0, MAX_TIME)),
                                                            self.play_sound)
 
@@ -112,6 +117,10 @@ class RandomSound(commands.Cog):
             await ctx.send("Stopping playback")
         else:
             await ctx.send("Not current playing random sounds.")
+
+    @random_sound_group.command("sounds")
+    async def sounds_command(self, ctx: commands.Context, *args):
+        await ctx.send("Available sound effects: " + ", ".join(SOUND_BANK.keys()))
 
 
 def setup(bot: "DiscordBot"):
