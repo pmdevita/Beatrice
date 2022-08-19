@@ -14,7 +14,7 @@ class MediaToCDN(commands.Cog):
     async def on_message(self, message: nextcord.Message, *args):
         matches = REGEX.findall(message.content)
         if matches:
-            await message.channel.send(f"{await member_to_mention(message.author)} You used media.discordapp.net instead "
+            await message.channel.send(f"{member_to_mention(message.author)} You used media.discordapp.net instead "
                                        f"of cdn.discordapp.com ya idiot https://cdn.discordapp.com{matches[0]}")
 
 

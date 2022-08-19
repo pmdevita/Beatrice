@@ -63,7 +63,7 @@ class Schedule(commands.Cog, name="manage_schedule"):
     @commands.command("schedule", aliases=["sched"])
     async def add_alarm_cmd(self, ctx, time_string, *args):
         message = None
-        user_mention = await member_to_mention(ctx.author)
+        user_mention = member_to_mention(ctx.author)
         if len(args) > 0:
             message = args[0]
 

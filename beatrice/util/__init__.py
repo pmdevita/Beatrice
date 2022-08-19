@@ -1,3 +1,5 @@
+import typing
+
 import nextcord
 from beatrice.util.regex import MENTION_STRING, CHANNEL_STRING
 from datetime import datetime, timedelta
@@ -8,8 +10,7 @@ class Utils:
         self.discord = discord
 
 
-# Todo: fix for strings with multiple mentions not separated by spaces
-async def find_mentions(guild: nextcord.Guild, string):
+async def find_user_mentions(guild: nextcord.Guild, string) -> typing.List[nextcord.Member]:
     if isinstance(string, list) or isinstance(string, tuple):
         string = " ".join(string)
     members = []
@@ -20,14 +21,14 @@ async def find_mentions(guild: nextcord.Guild, string):
     return members
 
 
-async def find_channels(bot: nextcord.Client, string):
+async def find_channel_mentions(guild: nextcord.Guild, string) -> typing.List[nextcord.TextChannel]:
     if isinstance(string, list) or isinstance(string, tuple):
         string = " ".join(string)
     members = []
     mention = CHANNEL_STRING.findall(string)
     if mention:
         for i in mention:
-            members.append(bot.get_channel(int(i)))
+            members.append(await guild.fetch_channel(i))
     return members
 
 
@@ -46,8 +47,12 @@ async def get_recent_users(guild, days=20):
     return list(users)
 
 
-async def member_to_mention(member: nextcord.Member):
+def member_to_mention(member: nextcord.Member):
     return f"<@!{member.id}>"
+
+
+def channel_to_mention(channel: nextcord.TextChannel):
+    return f"<#{channel.id}>"
 
 
 def date_countdown(date: datetime):

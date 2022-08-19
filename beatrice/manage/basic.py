@@ -56,7 +56,7 @@ class Basic(commands.Cog):
         if not member:
             await ctx.send(f"Who?")
             return
-        text = f"You're in big trouble {await member_to_mention(member)}, I suppose!"
+        text = f"You're in big trouble {member_to_mention(member)}, I suppose!"
         video_url = "https://cdn.discordapp.com/attachments/984306454133637170/984318182477152306/beatriceban.mov"
         # embed = nextcord.Embed(description=text,
         #                        url=video_url)
