@@ -10,9 +10,12 @@ from .bot import start_bot
 from .data import AudioFile
 import multiprocessing
 
+from ..util.background_tasks import BackgroundTasks
 
-class SoundManager(commands.Cog):
+
+class SoundManager(commands.Cog, BackgroundTasks):
     def __init__(self, bot: commands.Bot):
+        super().__init__()
         self._id_counter = 0
         self._func_counter = 0
         self.bot = bot
@@ -34,7 +37,6 @@ class SoundManager(commands.Cog):
         self.pause_channel_callbacks = {}
         self.stop_callbacks = {}
         self.func_callbacks = {}
-        self._background_tasks = set()
 
     @property
     def _callback_id(self):
@@ -59,11 +61,6 @@ class SoundManager(commands.Cog):
                 continue
             data = self.pipe.recv()
             self.start_background_task(self.process_command(data))
-
-    def start_background_task(self, coro):
-        task = asyncio.create_task(coro)
-        self._background_tasks.add(task)
-        task.add_done_callback(self._background_tasks.discard)
 
     async def process_command(self, command):
         try:

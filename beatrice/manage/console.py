@@ -2,6 +2,8 @@ import nextcord.ext.commands as commands
 import aioconsole
 import asyncio
 
+from beatrice.util.background_tasks import BackgroundTasks
+
 
 def class_register(cls):
     cls._commands = {}
@@ -24,22 +26,17 @@ def register(name, aliases=None):
 
 
 @class_register
-class Console(commands.Cog):
+class Console(commands.Cog, BackgroundTasks):
     def __init__(self, discord: commands.Bot):
+        super().__init__()
         self.discord = discord
         self.command_task = None
         self.commands = {}
         self._cancel = False
-        self._background_tasks = set()
         # self.command = Commands()
 
     async def __async_init__(self):
         self.command_task = asyncio.create_task(self.get_command())
-
-    def start_background_task(self, coro):
-        task = asyncio.create_task(coro)
-        self._background_tasks.add(task)
-        task.add_done_callback(self._background_tasks.discard)
 
     async def get_command(self):
         while not self._cancel:

@@ -7,20 +7,16 @@ from pathlib import Path
 import aiohttp
 import aiofiles
 from .data import AudioFile
+from beatrice.util.background_tasks import BackgroundTasks
 
 
-class AsyncFileManager:
+class AsyncFileManager(BackgroundTasks):
     def __init__(self, cache_path: typing.Optional[Path] = None, max_preload: int = 3):
+        super().__init__()
         self.cache_path = cache_path
         self.max_preload = max_preload
         self.session = aiohttp.ClientSession()
         self.files = []
-        self._background_tasks = set()
-
-    def start_background_task(self, coro):
-        task = asyncio.create_task(coro)
-        self._background_tasks.add(task)
-        task.add_done_callback(self._background_tasks.discard)
 
     async def open(self, audio_file: AudioFile):
         file = AsyncFile(self, audio_file)

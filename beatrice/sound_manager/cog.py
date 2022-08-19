@@ -14,6 +14,7 @@ from .async_file import AsyncFileManager
 from nextcord import opus
 
 from .stats import RollingAverage
+from ..util.background_tasks import BackgroundTasks
 
 if not opus.is_loaded():
     # print("loading opus...")
@@ -22,14 +23,14 @@ if not opus.is_loaded():
 from .source import AsyncFFmpegAudio, AsyncVoiceClient, AsyncEncoder
 
 
-class SoundManagerCog(commands.Cog):
+class SoundManagerCog(commands.Cog, BackgroundTasks):
     def __init__(self, bot: commands.Bot):
+        super().__init__()
         self.bot = bot
         self.guilds = {}
         self.playback_guilds: typing.Dict['GuildAudio', 'GuildConnection'] = {}
         self.playback_task = None
         self.encode_thread_pool = concurrent.futures.ThreadPoolExecutor()
-        self._background_tasks = set()
         cache_path = self.bot.config.get("cache_path", None)
         if cache_path:
             cache_path = Path(cache_path)
@@ -37,11 +38,6 @@ class SoundManagerCog(commands.Cog):
         # self.encode_thread_pool = concurrent.futures.ProcessPoolExecutor()
         if not opus.is_loaded():
             opus._load_default()
-
-    def start_background_task(self, coro):
-        task = asyncio.create_task(coro)
-        self._background_tasks.add(task)
-        task.add_done_callback(self._background_tasks.discard)
 
     async def queue(self, voice_channel: int, audio_channel: str, audio_file: dict, override=False):
         try:

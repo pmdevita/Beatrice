@@ -2,6 +2,7 @@ import asyncio
 import multiprocessing.connection
 import traceback
 from nextcord.ext import commands
+from beatrice.util.background_tasks import BackgroundTasks
 try:
     import uvloop
 except ImportError:
@@ -15,7 +16,7 @@ else:
 # logging.basicConfig(level=logging.INFO)
 
 
-class SoundManagerBot(commands.Bot):
+class SoundManagerBot(commands.Bot, BackgroundTasks):
     def __init__(self, pipe: multiprocessing.connection.Connection, config):
         self.pipe = pipe
         self.config = config
@@ -23,7 +24,6 @@ class SoundManagerBot(commands.Bot):
         self._cancel = False
         self._read_event = asyncio.Event()
         self._read_loop = None
-        self._background_tasks = set()
         super(SoundManagerBot, self).__init__(chunk_guilds_at_startup=False)
 
     async def on_message(self, message):
@@ -54,11 +54,6 @@ class SoundManagerBot(commands.Bot):
                 break
             self.start_background_task(self.process_command(data))
         print("Sound manager shutting down...")
-
-    def start_background_task(self, coro):
-        task = asyncio.create_task(coro)
-        self._background_tasks.add(task)
-        task.add_done_callback(self._background_tasks.discard)
 
     async def process_command(self, data):
             command = data.pop("command")
