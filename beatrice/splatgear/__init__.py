@@ -167,8 +167,9 @@ Usage:
             elif brand or gear:
                 message += " and"
             message += f" skill {skill.name}"
-        if message[0] == " ":
-            message = message[1:]
+        if message:
+            if message[0] == " ":
+                message = message[1:]
         return message
 
     @splatgear_group.command("list")
