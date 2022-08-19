@@ -1,5 +1,5 @@
 import nextcord
-from random import randrange
+from random import randrange, choice
 from datetime import datetime, timedelta
 from nextcord.ext import commands
 from dataclasses import dataclass
@@ -25,13 +25,22 @@ class GuildRandomSound:
     cog: "RandomSound"
     guild: nextcord.Guild
     channel: nextcord.VoiceChannel
-    sound_name: str
+    sound_name: str | list
     next_sound: TimerTask = None
     end_playback: TimerTask = None
 
     async def play_sound(self):
-        await self.cog.sound_manager.queue(self.channel, "notifications", AudioFile(SOUND_BANK[self.sound_name],
-                                                                                    volume=1.5))
+        if isinstance(self.sound_name, list):
+            sound_name = choice(self.sound_name)
+        else:
+            sound_name = self.sound_name
+
+        if isinstance(SOUND_BANK[sound_name], list):
+            file = choice(SOUND_BANK[sound_name])
+        else:
+            file = SOUND_BANK[sound_name]
+
+        await self.cog.sound_manager.queue(self.channel, "notifications", AudioFile(file, volume=1.5))
         self.next_sound = self.cog.bot.timer.schedule_task(datetime.now() + timedelta(seconds=randrange(0, MAX_TIME)),
                                                            self.play_sound)
 
@@ -53,18 +62,28 @@ class RandomSound(commands.Cog):
         pass
 
     @random_sound_group.command("start")
-    async def start_playing(self, ctx: commands.Context, sound_name: str, *args):
+    async def start_playing(self, ctx: commands.Context, *args):
+        if len(args) == 0:
+            await ctx.send("No sound name given.")
+            return
+
         if ctx.author.voice is None:
             await ctx.send("You aren't currently in a voice channel.")
             return
 
-        if sound_name not in SOUND_BANK:
-            await ctx.send(f"Unknown sound effect {sound_name}.")
-            return
+        for sound_name in args:
+            if sound_name not in SOUND_BANK:
+                await ctx.send(f"Unknown sound effect {sound_name}.")
+                return
 
         if ctx.guild in self.current_playback:
             await ctx.send("Already playing random sound effects.")
             return
+
+        if len(args) == 1:
+            sound_name = args[0]
+        else:
+            sound_name = args
 
         channel = ctx.author.voice.channel
 
