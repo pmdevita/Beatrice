@@ -10,7 +10,7 @@ class Utils:
         self.discord = discord
 
 
-async def find_user_mentions(guild: nextcord.Guild, string) -> typing.List[nextcord.Member]:
+async def find_member_mentions(guild: nextcord.Guild, string) -> typing.List[nextcord.Member]:
     if isinstance(string, list) or isinstance(string, tuple):
         string = " ".join(string)
     members = []
