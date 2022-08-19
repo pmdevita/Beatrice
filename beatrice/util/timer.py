@@ -114,7 +114,7 @@ class Timer:
         await self._balance_tasks()
         self._running_task = None
 
-    def schedule_task(self, time: datetime, callback, repeat: timedelta = None, args: list = None, kwargs: dict = None):
+    def schedule_task(self, time: datetime, callback, repeat: timedelta = None, args: list = None, kwargs: dict = None) -> TimerTask:
         if time.tzinfo is None:
             time = time.astimezone(self.timezone)
         task = TimerTask(self, time, callback, repeat=repeat, args=args, kwargs=kwargs)

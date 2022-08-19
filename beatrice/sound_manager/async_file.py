@@ -70,8 +70,12 @@ class AsyncFile:
         self.has_seeked_file = False
         self.cursor = 0
         self.size = 0
-        self.downloaded_file = False
+        self.downloaded_file = False  # Has file completely and fully downloaded?
         self.download_job = None
+
+        # Read needs to await the download start in order to potentially have data to read
+        self.read = self._preload_read
+        self._read_ready = asyncio.Event()   # Is ready to start reading?
 
     async def open(self):
         if not self.download_job:
@@ -81,6 +85,7 @@ class AsyncFile:
         try:
             if self.file_path.startswith("http"):
                 async with self.manager.session.get(self.file_path) as resp:
+                    self._read_ready.set()
                     # Use file cache
                     if self.cache_name and self.manager.cache_path:
                         f = await aiofiles.open(self.manager.cache_path / self.cache_name, 'wb')
@@ -94,6 +99,7 @@ class AsyncFile:
             else:
                 self.file = await aiofiles.open(self.file_path, 'rb')
                 self.buffer = None
+                self._read_ready.set()
             print("Download finished for", self)
         except asyncio.exceptions.CancelledError:
             print("Cancelling download")
@@ -129,7 +135,12 @@ class AsyncFile:
         self.buffers[-1].write(chunk)
         self.size += self.CHUNK_SIZE
 
-    async def read(self, chunk: int):
+    async def _preload_read(self, chunk: int):
+        await self._read_ready.wait()
+        self.read = self._after_load_read
+        return await self._after_load_read(chunk)
+
+    async def _after_load_read(self, chunk: int):
         if self.buffer:
             while self.buffer.getbuffer().nbytes - self.cursor < chunk and not self.downloaded_file:
                 # print("Waiting for chunk...")

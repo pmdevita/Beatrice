@@ -105,7 +105,7 @@ class SoundManager(commands.Cog):
         self.pipe.close()
         self.chpipe.close()
 
-    async def queue(self, voice_channel: nextcord.VoiceChannel, audio_channel: str, audio_file: AudioFile,
+    async def queue(self, voice_channel: typing.Union[nextcord.VoiceChannel, nextcord.Member], audio_channel: str, audio_file: AudioFile,
                     override=False, play_start=None, play_end=None):
         """
 
