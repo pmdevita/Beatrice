@@ -12,20 +12,20 @@ from ormar import pre_save
 MetaModel = OrmarApp.create_app("Splatgear")
 
 
-class Brands(AppModel):
+class Brand(AppModel):
     id = ormar.Integer(primary_key=True)
     name = ormar.String(max_length=30)
 
     class Meta(MetaModel):
-        tablename = "splatgear_brands"
+        pass
 
 
-class Skills(AppModel):
+class Skill(AppModel):
     id = ormar.Integer(primary_key=True)
     name = ormar.String(max_length=30)
 
     class Meta(MetaModel):
-        tablename = "splatgear_skills"
+        pass
 
 
 class GearEnum(Enum):
@@ -41,7 +41,7 @@ class Gear(AppModel):
     name: str = ormar.String(max_length=30)
 
     class Meta(MetaModel):
-        tablename = "splatgear_gear"
+        pass
 
 
 @pre_save(Gear)
@@ -49,17 +49,17 @@ async def pre_save_album(sender: typing.Type[Gear], instance: Gear, **kwargs):
     instance.pid = f"{instance.type}_{instance.id}"
 
 
-class GearRequests(AppModel):
+class GearRequest(AppModel):
     id: int = ormar.Integer(primary_key=True)
     user: int = ormar.BigInteger()
     # TODO: Add delete constraints when they hit stable
     gear: typing.Optional[Gear] = ormar.ForeignKey(Gear, name="gear_id", related_name="requests", nullable=True)
-    brand: typing.Optional[Brands] = ormar.ForeignKey(Brands, name="brand_id", related_name="requests", nullable=True)
-    skill: typing.Optional[Skills] = ormar.ForeignKey(Skills, name="skill_id", related_name="requests", nullable=True)
+    brand: typing.Optional[Brand] = ormar.ForeignKey(Brand, name="brand_id", related_name="requests", nullable=True)
+    skill: typing.Optional[Skill] = ormar.ForeignKey(Skill, name="skill_id", related_name="requests", nullable=True)
     last_messaged: datetime = ormar.DateTime()
 
     class Meta(MetaModel):
-        tablename = "splatgear_requests"
+        pass
 
 
 class SplatGear(commands.Cog):
@@ -81,9 +81,9 @@ class SplatGear(commands.Cog):
             for gear_type in GearEnum:
                 await self._synchronize_gear_list(data["gear"][gear_type.value], Gear, gear_type=gear_type.value)
             # Synchronize brands
-            await self._synchronize_gear_list(data["brands"], Brands)
+            await self._synchronize_gear_list(data["brands"], Brand)
             # Synchronize skills
-            await self._synchronize_gear_list(data["skills"], Skills)
+            await self._synchronize_gear_list(data["skills"], Skill)
 
     async def _synchronize_gear_list(self, gear_list, model: typing.Type[AppModel], gear_type=None):
         gears = {int(gear): gear_list[gear]["name"] for gear in gear_list}
@@ -135,7 +135,7 @@ Usage:
         skill = None
         kwargs = {"user": ctx.author.id, "last_messaged": datetime.now(self.discord.timer.timezone) - timedelta(days=2)}
         for i in args:
-            new_brand = await Brands.objects.get_or_none(name__iexact=i)
+            new_brand = await Brand.objects.get_or_none(name__iexact=i)
             if new_brand:
                 brand = new_brand
                 kwargs["brand"] = brand
@@ -143,17 +143,17 @@ Usage:
             if new_gear:
                 gear = new_gear
                 kwargs["gear"] = gear
-            new_skill = await Skills.objects.get_or_none(name__iexact=i)
+            new_skill = await Skill.objects.get_or_none(name__iexact=i)
             if new_skill:
                 skill = new_skill
                 kwargs["skill"] = skill
             if new_brand is None and new_gear is None and new_skill is None:
                 await ctx.send(f"Unknown property \"{i}\"")
                 return
-        gear_row = await GearRequests.objects.create(**kwargs)
+        gear_row = await GearRequest.objects.create(**kwargs)
         await ctx.send(f"Added alert for gear with {self.format_gear_request(gear, brand, skill)}.")
 
-    def format_gear_request(self, gear: typing.Optional[Gear], brand: typing.Optional[Brands], skill: typing.Optional[Skills]):
+    def format_gear_request(self, gear: typing.Optional[Gear], brand: typing.Optional[Brand], skill: typing.Optional[Skill]):
         message = ""
         if gear:
             message += f" type {gear.name}"
@@ -180,7 +180,7 @@ Usage:
         request_type = args[0].lower()
         if request_type == "brand" or request_type == "brands":
             with ctx.channel.typing():
-                kinds = [i.name for i in await Brands.objects.all()]
+                kinds = [i.name for i in await Brand.objects.all()]
         elif request_type == "gear" or request_type == "gears":
             given_type = None
             gear_type = None
@@ -199,7 +199,7 @@ Usage:
                 kinds = [i.name for i in await Gear.objects.filter(type=gear_type).all()]
         elif request_type == "skill" or request_type == "skills":
             with ctx.channel.typing():
-                kinds = [i.name for i in await Skills.objects.all()]
+                kinds = [i.name for i in await Skill.objects.all()]
         else:
             await ctx.send(f"Error: Unknown type {args[0]}")
             return
@@ -221,14 +221,14 @@ Usage:
             else:
                 gear_type = GearEnum.shoes
             gear = await Gear.objects.get(id=int(merch["gear"]["id"]), type=gear_type)
-            brand = await Brands.objects.get(id=int(merch["gear"]["brand"]["id"]))
-            skill = await Skills.objects.get(id=int(merch["skill"]["id"]))
+            brand = await Brand.objects.get(id=int(merch["gear"]["brand"]["id"]))
+            skill = await Skill.objects.get(id=int(merch["skill"]["id"]))
 
-            rows = await GearRequests.objects.filter(
-                ((GearRequests.gear.pid == gear.pid) | (GearRequests.gear.pid.isnull(True))) &
-                ((GearRequests.brand.id == brand.id) | (GearRequests.brand.id.isnull(True))) &
-                ((GearRequests.skill.id == skill.id) | (GearRequests.skill.id.isnull(True))) &
-                (GearRequests.last_messaged <= (datetime.now(self.discord.timer.timezone) - timedelta(hours=12)))
+            rows = await GearRequest.objects.filter(
+                ((GearRequest.gear.pid == gear.pid) | (GearRequest.gear.pid.isnull(True))) &
+                ((GearRequest.brand.id == brand.id) | (GearRequest.brand.id.isnull(True))) &
+                ((GearRequest.skill.id == skill.id) | (GearRequest.skill.id.isnull(True))) &
+                (GearRequest.last_messaged <= (datetime.now(self.discord.timer.timezone) - timedelta(hours=12)))
             ).select_related(["gear", "brand", "skill"]).all()
 
             for request in rows:
@@ -289,7 +289,7 @@ Usage:
             user = ctx.author.id
             message = "```\n"
             i = 1
-            for watch in await GearRequests.objects.filter(user=user).select_related(["gear", "brand", "skill"]).all():
+            for watch in await GearRequest.objects.filter(user=user).select_related(["gear", "brand", "skill"]).all():
                 message += f"{i}: {self.format_gear_request(watch.gear, watch.brand, watch.skill)}\n"
                 i += 1
             if i == 1:
@@ -308,7 +308,7 @@ Usage:
                 await ctx.send(f"Error: {i} is not a number.")
                 return
         ids.sort(reverse=True)
-        rows = await GearRequests.objects.filter(user=ctx.author.id).select_related(["gear", "brand", "skill"]).all()
+        rows = await GearRequest.objects.filter(user=ctx.author.id).select_related(["gear", "brand", "skill"]).all()
 
         delete_strings = []
         for id in ids:
