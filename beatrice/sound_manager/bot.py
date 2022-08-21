@@ -16,7 +16,7 @@ else:
 # logging.basicConfig(level=logging.INFO)
 
 
-class SoundManagerBot(commands.Bot, BackgroundTasks):
+class SoundManagerBot(BackgroundTasks, commands.Bot):
     def __init__(self, pipe: multiprocessing.connection.Connection, config):
         self.pipe = pipe
         self.config = config
@@ -24,7 +24,7 @@ class SoundManagerBot(commands.Bot, BackgroundTasks):
         self._cancel = False
         self._read_event = asyncio.Event()
         self._read_loop = None
-        super(SoundManagerBot, self).__init__(chunk_guilds_at_startup=False)
+        super().__init__(chunk_guilds_at_startup=False)
 
     async def on_message(self, message):
         pass
