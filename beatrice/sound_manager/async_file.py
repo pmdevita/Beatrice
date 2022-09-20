@@ -99,8 +99,12 @@ class AsyncFile:
             print("Download finished for", self)
         except asyncio.exceptions.CancelledError:
             print("Cancelling download")
+        except FileNotFoundError:
+            print(f"Error: {self.file_path} not found.")
         except:
             print(traceback.format_exc())
+        finally:
+            self._read_ready.set()
         self.manager.start_background_task(self.manager.preload())
         self.downloaded_file = True
 
@@ -118,11 +122,11 @@ class AsyncFile:
             self.buffer.seek(self.buffer.getbuffer().nbytes)
             self.buffer.write(chunk)
             self.size += len(chunk)
-            try:
-                assert self.size == self.buffer.getbuffer().nbytes
-            except AssertionError as e:
-                print("WTF", len(chunk), self.size, self.buffer.getbuffer().nbytes)
-                self.size = self.buffer.getbuffer().nbytes
+            # try:
+            #     assert self.size == self.buffer.getbuffer().nbytes
+            # except AssertionError as e:
+            #     print("WTF", len(chunk), self.size, self.buffer.getbuffer().nbytes)
+            #     self.size = self.buffer.getbuffer().nbytes
 
     async def _write_to_buffer(self, chunk):
         if len(self.buffers) == 1:
