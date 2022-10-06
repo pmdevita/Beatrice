@@ -194,6 +194,21 @@ class SoundManager(commands.Cog, BackgroundTasks):
         }
         self.pipe.send(command)
 
+    async def sticky_voicechannel(self, guild: nextcord.Guild, voice_channel: nextcord.VoiceChannel = None):
+        command = {
+            "command": "sticky_voicechannel",
+            "guild": guild.id,
+            "voice_channel": voice_channel.id if voice_channel else None
+        }
+        self.pipe.send(command)
+
+    async def unsticky_voicechannel(self, guild: nextcord.Guild):
+        command = {
+            "command": "unsticky_voicechannel",
+            "guild": guild.id
+        }
+        self.pipe.send(command)
+
     def __del__(self):
         pass
         # self.on_close()
