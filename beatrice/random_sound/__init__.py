@@ -58,6 +58,7 @@ class GuildRandomSound:
                                                            self.play_sound)
 
     async def stop(self):
+        await self.cog.sound_manager.unsticky_voicechannel(self.guild)
         self.next_sound.cancel()
         if not self.end_playback.has_run:
             self.end_playback.cancel()
@@ -107,6 +108,7 @@ class RandomSound(commands.Cog):
         end = now + timedelta(hours=1)
 
         grs = GuildRandomSound(self, ctx.guild, channel, sound_name, end)
+        await self.sound_manager.sticky_voicechannel(ctx.guild, channel)
 
         self.current_playback[ctx.guild] = grs
 
