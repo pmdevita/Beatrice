@@ -19,7 +19,9 @@ SOUND_BANK = {
     "pipe": "metal_pipe.mp3",
     "vineboom": "vine_boom.opus",
     "bruh": "bruh.opus",
-    "what_the_dog_doin": "wtdd.opus"
+    "what_the_dog_doin": "wtdd.opus",
+    "yaidiot": "yaidiot.opus",
+    "eatapplesauce": "eatapplesauce.opus"
 }
 
 MAX_TIME = 60 * 15
@@ -31,8 +33,14 @@ class GuildRandomSound:
     guild: nextcord.Guild
     channel: nextcord.VoiceChannel
     sound_name: str | list
+    end_time: datetime
     next_sound: TimerTask = None
     end_playback: TimerTask = None
+
+    def __post_init__(self):
+        self.next_sound = self.cog.bot.timer.schedule_task(datetime.now() + timedelta(seconds=randrange(0, MAX_TIME)),
+                                                      self.play_sound)
+        self.end_playback = self.cog.bot.timer.schedule_task(self.end_time, self.stop)
 
     async def play_sound(self):
         if isinstance(self.sound_name, list):
@@ -54,6 +62,7 @@ class GuildRandomSound:
         if not self.end_playback.has_run:
             self.end_playback.cancel()
         del self.cog.current_playback[self.guild]
+        print(self.cog.current_playback)
 
 
 class RandomSound(commands.Cog):
@@ -68,7 +77,7 @@ class RandomSound(commands.Cog):
     async def random_sound_group(self, *args):
         pass
 
-    @random_sound_group.command("start")
+    @random_sound_group.command("start", aliases=["play"])
     async def start_playing(self, ctx: commands.Context, *args):
         if len(args) == 0:
             await ctx.send("No sound name given.")
@@ -97,13 +106,7 @@ class RandomSound(commands.Cog):
         now = datetime.now()
         end = now + timedelta(hours=1)
 
-        grs = GuildRandomSound(self, ctx.guild, channel, sound_name)
-
-        next_sound = self.bot.timer.schedule_task(now + timedelta(seconds=randrange(0, MAX_TIME)), grs.play_sound)
-        end_playback = self.bot.timer.schedule_task(end, grs.stop)
-
-        grs.next_sound = next_sound
-        grs.end_playback = end_playback
+        grs = GuildRandomSound(self, ctx.guild, channel, sound_name, end)
 
         self.current_playback[ctx.guild] = grs
 
