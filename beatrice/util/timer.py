@@ -25,6 +25,8 @@ class TimerTask:
             print("Warning: Callback was attempted on a cancelled task!!!", self._callback)
         callback = self._callback()
         if callback is not None:
+            if not self.repeat:
+                self._run = True    # Done in case the running task wants to know if it should cancel it
             try:
                 await callback(*self.args, **self.kwargs)
             except:
@@ -33,8 +35,6 @@ class TimerTask:
             self.time += self.repeat
             # Readd instead of recreate so API doesn't lose handler to the task
             self.timer._readd_task(self)
-        else:
-            self._run = True
 
     @property
     def has_run(self):
