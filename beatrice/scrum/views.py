@@ -40,6 +40,7 @@ class ScrumDayView(nextcord.ui.View):
                                                               f"Blockers: {entry.blockers}\n")
         else:
             text += "No entries yet. Hit the Daily Report button below!"
+            embed = None
         text = f"Scrum Report: {day.day.strftime('%A, %b %-d')}\n" + text
         return {"content": text, "embed": embed}
 

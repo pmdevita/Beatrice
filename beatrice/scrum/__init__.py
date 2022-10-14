@@ -15,14 +15,18 @@ class Scrum(commands.Cog):
         self.interactions = []
 
     async def __async_init__(self):
-        # await self.create_day_posts()
-        datetime.now()
-        morning_start = datetime.now().replace(hour=3, minute=0, second=0)
+        morning_start = datetime.now().replace(hour=9, minute=0, second=0)
         self.bot.timer.schedule_task(morning_start, self.create_day_posts, repeat=timedelta(hours=24))
 
     @commands.group("scrum")
     async def scrum_group(self, *args):
         pass
+
+    async def should_scrum_today(self, day: date):
+        # No weekends
+        if day.weekday() > 5:
+            return False
+        return True
 
     async def create_day_posts(self):
         # Stop any previous day views and remove them
@@ -53,6 +57,7 @@ class Scrum(commands.Cog):
     async def add_guild_command(self, ctx: commands.Context):
         await ScrumGuild.objects.create(guild=ctx.guild.id, channel=ctx.channel.id)
         await ctx.reply("Channel added to Scrum")
+        await self.send_scrum_day_view(ctx.channel)
 
     @scrum_group.command("delete", aliases=["remove", "unsubscribe", "del", "unsub"])
     async def remove_server_command(self, ctx: commands.Context):
