@@ -45,13 +45,6 @@ class Scrum(commands.Cog):
             if scrum_day:
                 if scrum_day.ignored:
                     continue
-                if scrum_day.post_id:
-                    try:
-                        message = await channel.fetch_message(scrum_day.post_id)
-                        await message.delete()
-                    except nextcord.errors.NotFound:
-                        pass
-                    await scrum_day.update(post_id=None)
             await self.send_scrum_day_view(channel)
 
     @scrum_group.command("add")
@@ -67,9 +60,19 @@ class Scrum(commands.Cog):
 
     async def send_scrum_day_view(self, channel: nextcord.TextChannel):
         entry = await ScrumDay.objects.get_or_none(day=date.today(), guild=channel.guild.id)
-        if entry is None:
+        message = None
+        # If we have an entry already, try to grab its message
+        if entry:
+            if entry.post_id:
+                try:
+                    message = await channel.fetch_message(entry.post_id)
+                except nextcord.errors.NotFound:
+                    message = None
+                    await entry.update(post_id=None)
+        # Make a new entry if we don't have one
+        else:
             entry = await ScrumDay.objects.create(day=date.today(), guild=channel.guild.id)
-        message, view = await ScrumDayView.send(channel, entry)
+        message, view = await ScrumDayView.send(channel, entry, message=message)
         await entry.update(post_id=message.id)
         self.interactions.append(view)
 

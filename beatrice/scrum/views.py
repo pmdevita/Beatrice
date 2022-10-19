@@ -19,10 +19,16 @@ class ScrumDayView(nextcord.ui.View):
         self.add_item(self.ignore_button)
 
     @classmethod
-    async def send(cls, channel: nextcord.TextChannel, day: ScrumDay):
+    async def send(cls, channel: nextcord.TextChannel, day: ScrumDay, message: nextcord.Message = None):
         data = await cls.format_text(channel.guild, day)
         view = cls(channel, day)
-        return await channel.send(view=view, **data), view
+        # If we already have a message, hook onto it
+        if message:
+            await message.edit(view=view, **data)
+            return message, view
+        # Otherwise, we make a new one
+        else:
+            return await channel.send(view=view, **data), view
 
     @staticmethod
     async def format_text(guild: nextcord.Guild, day: ScrumDay):
