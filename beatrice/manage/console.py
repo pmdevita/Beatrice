@@ -91,6 +91,18 @@ class Console(commands.Cog, BackgroundTasks):
         asyncio.ensure_future(self.discord.close())
         # await self.discord.close()
 
+    @register("vcsticky")
+    async def vcsticky(self, guild_id):
+        soundmanager = self.discord.cogs["SoundManager"]
+        guild = self.discord.get_guild(int(guild_id))
+        await soundmanager.sticky_voicechannel(guild)
+
+    @register("vcunsticky")
+    async def vcunsticky(self, guild_id):
+        soundmanager = self.discord.cogs["SoundManager"]
+        guild = self.discord.get_guild(int(guild_id))
+        await soundmanager.unsticky_voicechannel(guild)
+
 
 def setup(bot):
     bot.add_cog(Console(bot))

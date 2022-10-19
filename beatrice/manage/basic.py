@@ -1,3 +1,4 @@
+import asyncio
 import re
 import nextcord
 import nextcord.ext.commands as commands
@@ -12,7 +13,7 @@ HI_FILES = [
 ]
 
 DIABETES = re.compile("my family history has (\w+)", re.I)
-
+SOCK_DRAWER = re.compile("there\'?s nothing happening", re.I)
 
 class Basic(commands.Cog):
     def __init__(self, discord: commands.Bot):
@@ -76,6 +77,11 @@ class Basic(commands.Cog):
         result = DIABETES.findall(message.content)
         if result:
             await message.channel.send(f"(There is {result[0].lower()} in my family history)")
+        else:
+            result = SOCK_DRAWER.findall(message.content)
+            if result:
+                await asyncio.sleep(3)
+                await message.channel.send("I finally got the wildfire in my sock drawer under control!")
 
 
 def setup(bot):

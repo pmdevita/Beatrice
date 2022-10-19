@@ -13,6 +13,7 @@ else:
 from .util import Utils
 from .util.timer import Timer
 from .util.cog_loader import CogLoader
+from .util.background_tasks import BackgroundTasks
 from nextcord_ormar import Bot
 
 
@@ -28,7 +29,7 @@ intents.guilds = True
 intents.message_content = True
 
 
-class DiscordBot(Bot):
+class DiscordBot(BackgroundTasks, Bot):
     def __init__(self, *args, **kwargs):
         self.config = config
         self.utils = Utils(self)
@@ -53,7 +54,7 @@ class DiscordBot(Bot):
             self._has_inited_cogs = True
             for cog in self.cogs.values():
                 if callable(getattr(cog, "__async_init__", None)):
-                    await cog.__async_init__()
+                    self.start_background_task(cog.__async_init__())
 
     async def on_message(self, message):
         await self.cog_manager.process_commands(message)
