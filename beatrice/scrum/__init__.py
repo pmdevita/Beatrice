@@ -31,12 +31,13 @@ class Scrum(commands.Cog):
     async def create_day_posts(self):
         # Stop any previous day views and remove them
         while len(self.interactions):
-            await self.interactions.pop(0).stop()
+            interaction = self.interactions.pop(0)
+            if interaction:
+                await interaction.stop()
 
         day = date.today()
         # prefetch_related("days__day").
         guilds = await ScrumGuild.objects.all()
-        print(guilds)
         for guild in guilds:
             scrum_day = await ScrumDay.objects.get_or_none(guild=guild, day=day)
             channel = self.bot.get_channel(guild.channel)
@@ -68,7 +69,6 @@ class Scrum(commands.Cog):
         entry = await ScrumDay.objects.get_or_none(day=date.today(), guild=channel.guild.id)
         if entry is None:
             entry = await ScrumDay.objects.create(day=date.today(), guild=channel.guild.id)
-        print(entry)
         message, view = await ScrumDayView.send(channel, entry)
         await entry.update(post_id=message.id)
         self.interactions.append(view)
