@@ -24,7 +24,7 @@ class Scrum(commands.Cog):
 
     async def should_scrum_today(self, day: date):
         # No weekends
-        if day.weekday() > 5:
+        if day.weekday() > 4:
             return False
         return True
 
@@ -33,9 +33,12 @@ class Scrum(commands.Cog):
         while len(self.interactions):
             interaction = self.interactions.pop(0)
             if interaction:
-                await interaction.stop()
+                interaction.stop()
 
         day = date.today()
+        if not await self.should_scrum_today(day):
+            return
+
         # prefetch_related("days__day").
         guilds = await ScrumGuild.objects.all()
         for guild in guilds:
