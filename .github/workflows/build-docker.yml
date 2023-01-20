@@ -31,4 +31,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           push: true
-          tags: pmdevita/beatrice:latest
+          tags: ghcr.io/pmdevita/beatrice:latest
