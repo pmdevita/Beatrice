@@ -30,6 +30,5 @@ jobs:
           context: .
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Push the Docker image
-        run: docker push ghcr.io/pmdevita/beatrice:latest
+          push: true
+          tags: pmdevita/beatrice:latest
