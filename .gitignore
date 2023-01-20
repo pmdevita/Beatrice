@@ -12,3 +12,4 @@ __pycache__
 assets/
 chat training/*.json
 chat training/**/*.json
+dist
