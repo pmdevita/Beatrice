@@ -10,7 +10,6 @@ else:
     print("Using uvloop")
     asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
-from .util import Utils
 from .util.timer import Timer
 from .util.cog_loader import CogLoader
 from .util.background_tasks import BackgroundTasks
@@ -32,22 +31,15 @@ intents.message_content = True
 class DiscordBot(BackgroundTasks, Bot):
     def __init__(self, *args, **kwargs):
         self.config = config
-        self.utils = Utils(self)
         self.cog_manager = CogLoader(self, config["general"]["cogs"])
         super().__init__(*args, **kwargs)
         self.timer = Timer(self)
-        self._has_inited = False
         self._has_inited_cogs = False
+        self.session: aiohttp.ClientSession = None
         self._rollout_delete_unknown = config["general"].get("allow_unknown_commands", "false").lower() == "true"
 
     def configure(self):
         self.cog_manager.init_bot()
-
-    async def on_connect(self):
-        if not self._has_inited:
-            self._has_inited = True
-            self.session = aiohttp.ClientSession(headers={"User-Agent": self.config["general"]["user_agent"]})
-        self.add_all_application_commands()
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")
@@ -65,6 +57,7 @@ class DiscordBot(BackgroundTasks, Bot):
         if self.config["general"].get("debug", "False").lower() == "true":
             print("Enabling Beatrice Async Debug")
             self.loop.set_debug(True)
+        self.session =  aiohttp.ClientSession(headers={"User-Agent": self.config["general"]["user_agent"]})
         await super().start(token, reconnect=reconnect)
 
     async def _close_session(self):

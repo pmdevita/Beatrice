@@ -1,3 +1,5 @@
+import typing
+
 import nextcord
 import nextcord.ext.commands as commands
 import pytz
@@ -6,6 +8,7 @@ from datetime import datetime
 import dateparser
 import platform
 from beatrice.util import member_to_mention, date_countdown
+from beatrice.util.slash_compat import Cog, command
 from nextcord_ormar import OrmarApp, AppModel
 import ormar
 
@@ -46,7 +49,7 @@ class Alarm:
         return f"Alarm({self.num}, {self.time}, {self.message})"
 
 
-class Schedule(commands.Cog, name="manage_schedule"):
+class Schedule(Cog, name="manage_schedule"):
     def __init__(self, discord: commands.Bot):
         self.discord = discord
         self.alarms = {}
@@ -60,12 +63,10 @@ class Schedule(commands.Cog, name="manage_schedule"):
                 channel = await self.discord.create_dm(self.discord.get_user(alarm.channel))
             await self.add_alarm(alarm.id, alarm.time, alarm.message, channel)
 
-    @commands.command("schedule", aliases=["sched"])
-    async def add_alarm_cmd(self, ctx, time_string, *args):
-        message = None
-        user_mention = member_to_mention(ctx.author)
-        if len(args) > 0:
-            message = args[0]
+    @command("schedule", aliases=["sched"])
+    @nextcord.slash_command("schedule")
+    async def add_alarm_cmd(self, ctx: nextcord.Interaction, time_string: str, message: typing.Optional[str]):
+        user_mention = member_to_mention(ctx.user)
 
         if message is None:
             templates = ["Ah, {}, your time is up I suppose.", "You can't keep sleeping forever {}, I suppose.", "{}, it's time."]
@@ -80,7 +81,7 @@ class Schedule(commands.Cog, name="manage_schedule"):
 
         channel_id = ctx.channel.id
         if isinstance(ctx.channel, nextcord.DMChannel):
-            channel_id = ctx.author.id
+            channel_id = ctx.user.id
 
         a_row = await AlarmModel.objects.create(channel=channel_id, time=date, message=message)
         await self.add_alarm(a_row.id, date, message, ctx.channel)

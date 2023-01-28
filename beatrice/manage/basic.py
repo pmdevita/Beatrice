@@ -1,9 +1,12 @@
 import asyncio
 import re
+import typing
+
 import nextcord
 import nextcord.ext.commands as commands
 from random import choice
 from beatrice.util import find_member_mentions, member_to_mention
+from beatrice.util.slash_compat import Cog, command, CommandInteraction
 from beatrice.sound_manager import AudioFile
 
 HI_FILES = [
@@ -15,7 +18,7 @@ HI_FILES = [
 DIABETES = re.compile("my family history has (\w+)", re.I)
 SOCK_DRAWER = re.compile("there\'?s nothing happening", re.I)
 
-class Basic(commands.Cog):
+class Basic(Cog):
     def __init__(self, discord: commands.Bot):
         self.discord = discord
         self.connection = None
@@ -24,12 +27,10 @@ class Basic(commands.Cog):
     async def __async_init__(self):
         self.sound_manager = self.discord.cogs.get("SoundManager")
 
-    @commands.command("hi", aliases=["hello", "hey", "howdy", "beatrice", "beako", "betty"])
-    async def hello(self, ctx: commands.Context, *args):
-        member = ctx.author
-        mentions = await find_member_mentions(ctx.guild, args)
-        if mentions:
-            member = mentions[0]
+    @command("hi", aliases=["hello", "hey", "howdy", "beatrice", "beako", "betty"])
+    @nextcord.slash_command("hi", description="Beatrice says hi")
+    async def hello(self, interaction: nextcord.Interaction | CommandInteraction, member: typing.Optional[nextcord.Member] = None):
+        member = member if member else interaction.user
 
         if isinstance(member, nextcord.Member):
             if member.voice and self.sound_manager:
@@ -41,19 +42,28 @@ class Basic(commands.Cog):
                                                }), play_start=self.hello_sound)
                 return
         templates = ["Hmmmmm... hi {}.", "Yes, yes, hello {}.", "Hi {}, I guess.", "I'm busy right now {}, shoo, shoo!"]
-        await ctx.send(choice(templates).format(member.display_name))
+        await interaction.send(choice(templates).format(member.display_name))
 
     async def hello_sound(self, audio_file: AudioFile):
         channel = self.discord.get_channel(audio_file.metadata["channel"])
         await channel.send(audio_file.metadata["text"])
 
-    @commands.command(name="ping")
-    async def ping(self, ctx: commands.Context):
+
+    @commands.command("ping")
+    async def ping_comm(self, ctx: commands.Context):
+        await self.ping(CommandInteraction(ctx))
+
+    @nextcord.slash_command("ping")
+    async def ping(self, ctx: nextcord.Interaction | CommandInteraction):
         """Get the bot's current websocket latency."""
         await ctx.send(f"Hey stop that! ({round(self.discord.latency * 1000)}ms)")
 
-    @commands.command(name="ban")
-    async def ban(self, ctx: commands.Context, member: nextcord.Member = None, reason: str = None):
+    @commands.command("ban")
+    async def ban_comm(self, ctx: commands.Context, member: typing.Optional[nextcord.Member]):
+        await self.ban(CommandInteraction(ctx), member)
+
+    @nextcord.slash_command("ban")
+    async def ban(self, ctx: nextcord.Interaction, member: typing.Optional[nextcord.Member]):
         if not member:
             await ctx.send(f"Who?")
             return
@@ -62,13 +72,17 @@ class Basic(commands.Cog):
         # embed = nextcord.Embed(description=text,
         #                        url=video_url)
         await ctx.send(text)
-        await ctx.send(video_url)
+        # Might not work if perms missing
+        try:
+            await ctx.channel.send(video_url)
+        except:
+            await ctx.send(video_url)
 
-    @commands.command("inhale")
+    @nextcord.slash_command("inhale", description="INHALE A CAR")
     async def inhale_a_car(self, ctx: commands.Context, *args):
         await self.sound_manager.queue(ctx.author, "notifications", AudioFile("assets/inhale_a_car.opus", 2, duck=True))
 
-    @commands.command("mouthful")
+    @nextcord.slash_command("mouthful", description="MoOOUTHFULLL MOOODDDEEEE")
     async def mouthful(self, ctx: commands.Context, *args):
         await self.sound_manager.queue(ctx.author, "notifications", AudioFile("assets/mouthful_mode.opus", 2, duck=True))
 

@@ -5,11 +5,6 @@ from beatrice.util.regex import MENTION_STRING, CHANNEL_STRING
 from datetime import datetime, timedelta
 
 
-class Utils:
-    def __init__(self, discord):
-        self.discord = discord
-
-
 async def find_member_mentions(guild: nextcord.Guild, string) -> typing.List[nextcord.Member]:
     if isinstance(string, list) or isinstance(string, tuple):
         string = " ".join(string)
