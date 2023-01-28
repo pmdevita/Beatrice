@@ -1,3 +1,4 @@
+import typing
 from pathlib import Path
 from dataclasses import dataclass, field
 
@@ -52,6 +53,10 @@ class BotFilter:
 
     # Intercept inject calls to pass the BotFilter instance instead of the Bot
     def _inject_bot(self, bot: BotBase):
+        if not self.__perms.all_guilds:
+            for app_command in self.__cog.application_commands:
+               app_command.guild_ids_to_rollout = self.__perms.guilds
+
         return self.__cog._real_inject(self)
 
     # Wrap all event listeners with a permissions filter event
@@ -62,7 +67,7 @@ class BotFilter:
     def _filter_events(self, func):
         async def wrapper(*args):
             if len(args):
-                if isinstance(args[0], nextcord.message.Message):
+                if isinstance(args[0], nextcord.message.Message) or isinstance(args[0], nextcord.Message):
                     if isinstance(args[0].channel, nextcord.DMChannel):
                         if self.__perms.direct_messages:
                             return await func(*args)
