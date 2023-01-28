@@ -25,7 +25,7 @@ class AsyncFFmpegAudio(nextcord.AudioSource):
 
     async def start(self):
         args = ["ffmpeg", '-loglevel', 'quiet', "-i", "pipe:0",
-                "-filter:a", "loudnorm",
+                "-filter:a", "loudnorm", "-vn",
                 '-f', 's16le', '-ar', '48000', '-ac', '2', "-"]
         self._process = await asyncio.create_subprocess_exec(*args, stdout=asyncio.subprocess.PIPE,
                                                              stdin=asyncio.subprocess.PIPE,
