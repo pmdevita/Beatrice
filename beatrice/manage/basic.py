@@ -29,7 +29,7 @@ class Basic(Cog):
 
     @command("hi", aliases=["hello", "hey", "howdy", "beatrice", "beako", "betty"])
     @nextcord.slash_command("hi", description="Beatrice says hi")
-    async def hello(self, interaction: nextcord.Interaction | CommandInteraction, member: typing.Optional[nextcord.Member] = None):
+    async def hello(self, interaction: nextcord.Interaction, member: typing.Optional[nextcord.Member] = None):
         member = member if member else interaction.user
 
         if isinstance(member, nextcord.Member):
@@ -38,7 +38,7 @@ class Basic(Cog):
                 await self.sound_manager.queue(member, "notifications",
                                                AudioFile(f"assets/{line[0]}", 2, duck=True, metadata={
                                                    "text": line[1].format(member.display_name),
-                                                   "channel": ctx.channel.id
+                                                   "channel": interaction.channel.id
                                                }), play_start=self.hello_sound)
                 return
         templates = ["Hmmmmm... hi {}.", "Yes, yes, hello {}.", "Hi {}, I guess.", "I'm busy right now {}, shoo, shoo!"]
@@ -48,20 +48,13 @@ class Basic(Cog):
         channel = self.discord.get_channel(audio_file.metadata["channel"])
         await channel.send(audio_file.metadata["text"])
 
-
-    @commands.command("ping")
-    async def ping_comm(self, ctx: commands.Context):
-        await self.ping(CommandInteraction(ctx))
-
+    @command("ping")
     @nextcord.slash_command("ping")
-    async def ping(self, ctx: nextcord.Interaction | CommandInteraction):
+    async def ping(self, ctx: nextcord.Interaction):
         """Get the bot's current websocket latency."""
         await ctx.send(f"Hey stop that! ({round(self.discord.latency * 1000)}ms)")
 
-    @commands.command("ban")
-    async def ban_comm(self, ctx: commands.Context, member: typing.Optional[nextcord.Member]):
-        await self.ban(CommandInteraction(ctx), member)
-
+    @command("ban")
     @nextcord.slash_command("ban")
     async def ban(self, ctx: nextcord.Interaction, member: typing.Optional[nextcord.Member]):
         if not member:
@@ -79,12 +72,12 @@ class Basic(Cog):
             await ctx.send(video_url)
 
     @nextcord.slash_command("inhale", description="INHALE A CAR")
-    async def inhale_a_car(self, ctx: commands.Context, *args):
-        await self.sound_manager.queue(ctx.author, "notifications", AudioFile("assets/inhale_a_car.opus", 2, duck=True))
+    async def inhale_a_car(self, ctx: nextcord.Interaction, *args):
+        await self.sound_manager.queue(ctx.user, "notifications", AudioFile("assets/inhale_a_car.opus", 2, duck=True))
 
     @nextcord.slash_command("mouthful", description="MoOOUTHFULLL MOOODDDEEEE")
-    async def mouthful(self, ctx: commands.Context, *args):
-        await self.sound_manager.queue(ctx.author, "notifications", AudioFile("assets/mouthful_mode.opus", 2, duck=True))
+    async def mouthful(self, ctx: nextcord.Interaction, *args):
+        await self.sound_manager.queue(ctx.user, "notifications", AudioFile("assets/mouthful_mode.opus", 2, duck=True))
 
     @commands.Cog.listener("on_message")
     async def on_message(self, message: nextcord.Message, *arg):

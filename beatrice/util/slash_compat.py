@@ -8,6 +8,7 @@ class _ComboCommand:
         self.app_cmd = app_cmd
         self.msg_cmd = msg_cmd
 
+
 class _CogMetaParent:
     def __new__(cls, *args, **kwargs):
         new_cls = super().__new__(cls, *args, **kwargs)
@@ -20,11 +21,14 @@ class _CogMetaParent:
             setattr(new_cls, key, value)
         return new_cls
 
+
 class CogMeta(commands.CogMeta):
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls, *args, **kwargs)
 
-CogMeta.__bases__ =  CogMeta.__bases__ + (_CogMetaParent, type)
+
+CogMeta.__bases__ = CogMeta.__bases__ + (_CogMetaParent, type)
+
 
 class Cog(commands.Cog, metaclass=CogMeta):
     pass
@@ -54,22 +58,25 @@ class Command(commands.Command):
 def _command_context_to_interaction(func):
     async def wrapper(self, ctx: commands.Context, *args, **kwargs):
         return await func(self, CommandInteraction(ctx), *args, **kwargs)
+
     return wrapper
+
 
 def command(name, aliases=None, **kwargs):
     def wrapper(func):
         wrapped_comm = _command_context_to_interaction(func.callback)
         wrapped_comm.func = func.callback
-        comm = Command(wrapped_comm, name=name, aliases=aliases, **kwargs)
+        comm = Command(wrapped_comm, name=name, aliases=aliases if aliases else [], **kwargs)
         return _ComboCommand(func, comm)
+
     return wrapper
+
 
 class CommandInteraction:
     """Wrap a commands.Context object to provide compatibility for slash commands"""
 
     def __init__(self, ctx: commands.Context):
         self._ctx = ctx
-
 
     def __getattr__(self, item):
         return getattr(self._ctx, item)
@@ -81,5 +88,3 @@ class CommandInteraction:
     @property
     def channel_id(self):
         return self._ctx.channel.id
-
-
