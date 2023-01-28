@@ -38,6 +38,7 @@ class DiscordBot(BackgroundTasks, Bot):
         self.timer = Timer(self)
         self._has_inited = False
         self._has_inited_cogs = False
+        self._rollout_delete_unknown = config["general"].get("allow_unknown_commands", "false").lower() == "true"
 
     def configure(self):
         self.cog_manager.init_bot()
@@ -46,6 +47,7 @@ class DiscordBot(BackgroundTasks, Bot):
         if not self._has_inited:
             self._has_inited = True
             self.session = aiohttp.ClientSession(headers={"User-Agent": self.config["general"]["user_agent"]})
+        self.add_all_application_commands()
 
     async def on_ready(self):
         print(f"Logged in as {self.user}")
