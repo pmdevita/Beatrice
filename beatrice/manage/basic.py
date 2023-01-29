@@ -18,6 +18,7 @@ HI_FILES = [
 DIABETES = re.compile("my family history has (\w+)", re.I)
 SOCK_DRAWER = re.compile("there\'?s nothing happening", re.I)
 
+
 class Basic(Cog):
     def __init__(self, discord: commands.Bot):
         self.discord = discord
@@ -72,11 +73,11 @@ class Basic(Cog):
             await ctx.send(video_url)
 
     @nextcord.slash_command("inhale", description="INHALE A CAR")
-    async def inhale_a_car(self, ctx: nextcord.Interaction, *args):
+    async def inhale_a_car(self, ctx: nextcord.Interaction):
         await self.sound_manager.queue(ctx.user, "notifications", AudioFile("assets/inhale_a_car.opus", 2, duck=True))
 
     @nextcord.slash_command("mouthful", description="MoOOUTHFULLL MOOODDDEEEE")
-    async def mouthful(self, ctx: nextcord.Interaction, *args):
+    async def mouthful(self, ctx: nextcord.Interaction):
         await self.sound_manager.queue(ctx.user, "notifications", AudioFile("assets/mouthful_mode.opus", 2, duck=True))
 
     @commands.Cog.listener("on_message")
