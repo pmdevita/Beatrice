@@ -16,4 +16,4 @@ RUN apk add blas opusfile ffmpeg  # needed for audio
 RUN apk add libuv libsodium
 COPY --from=builder /app /app
 WORKDIR /config
-CMD ["/bin/bash", "-c", "/app/bin/beatrice"]
+CMD ["bash", "-c", "/app/bin/beatrice"]
