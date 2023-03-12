@@ -5,9 +5,9 @@ import typing
 import nextcord
 import nextcord.ext.commands as commands
 from random import choice
-from beatrice.util import find_member_mentions, member_to_mention
-from beatrice.util.slash_compat import Cog, command, CommandInteraction
-from beatrice.sound_manager import AudioFile
+from beatrice.util import member_to_mention
+from beatrice.util.slash_compat import Cog, command
+from beatrice.sound_manager import AudioFile, SoundManager
 
 HI_FILES = [
     ("beatrice_hi1.opus", "You come in here without knocking? What a rude one you are."),
@@ -23,7 +23,7 @@ class Basic(Cog):
     def __init__(self, discord: commands.Bot):
         self.discord = discord
         self.connection = None
-        self.sound_manager = None
+        self.sound_manager: typing.Optional[SoundManager] = None
 
     async def __async_init__(self):
         self.sound_manager = self.discord.cogs.get("SoundManager")
@@ -74,11 +74,15 @@ class Basic(Cog):
 
     @nextcord.slash_command("inhale", description="INHALE A CAR")
     async def inhale_a_car(self, ctx: nextcord.Interaction):
-        await self.sound_manager.queue(ctx.user, "notifications", AudioFile("assets/inhale_a_car.opus", 2, duck=True))
+        if self.sound_manager:
+            await self.sound_manager.queue(ctx.user, "notifications",
+                                           AudioFile("assets/inhale_a_car.opus", 2, duck=True))
 
     @nextcord.slash_command("mouthful", description="MoOOUTHFULLL MOOODDDEEEE")
     async def mouthful(self, ctx: nextcord.Interaction):
-        await self.sound_manager.queue(ctx.user, "notifications", AudioFile("assets/mouthful_mode.opus", 2, duck=True))
+        if self.sound_manager:
+            await self.sound_manager.queue(ctx.user, "notifications",
+                                           AudioFile("assets/mouthful_mode.opus", 2, duck=True))
 
     @commands.Cog.listener("on_message")
     async def on_message(self, message: nextcord.Message, *arg):
