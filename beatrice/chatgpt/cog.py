@@ -29,13 +29,13 @@ class ChatGPT(Cog):
             reference_message = await reference_channel.fetch_message(reference.message_id)
             is_reply = reference_message.author == guild.me
         if (guild.me in message.mentions and message.author != guild.me) or is_reply:
-            print("Mentioned!")
             await self.reply_to(message)
 
     async def reply_to(self, message: nextcord.Message):
         async with message.channel.typing():
             from .prompts import prompt
             budget = self.token_budget
+            budget -= len(self.enc.encode(prompt))
             log = []
             raw_messages = [message]
             async for before_message in message.channel.history(limit=10, before=message):
