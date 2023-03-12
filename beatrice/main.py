@@ -57,7 +57,7 @@ class DiscordBot(BackgroundTasks, Bot):
         if self.config["general"].get("debug", "False").lower() == "true":
             print("Enabling Beatrice Async Debug")
             self.loop.set_debug(True)
-        self.session =  aiohttp.ClientSession(headers={"User-Agent": self.config["general"]["user_agent"]})
+        self.session = aiohttp.ClientSession(headers={"User-Agent": self.config["general"]["user_agent"]})
         await super().start(token, reconnect=reconnect)
 
     async def _close_session(self):

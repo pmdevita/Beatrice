@@ -6,7 +6,7 @@ class RollingAverage:
         self.size = size
         self.weight = weight
         self.index = 0
-        self.array = np.zeros(self.size, dtype=np.float)
+        self.array = np.zeros(self.size, dtype=float)
         self.total_count = 0
         self.total_value = 0
 

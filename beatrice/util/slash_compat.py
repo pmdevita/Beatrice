@@ -22,6 +22,7 @@ class _CogMetaParent:
         return new_cls
 
 
+# We define a subclass of CogMeta so that we can monkey patch its class lineage
 class CogMeta(commands.CogMeta):
     def __new__(cls, *args, **kwargs):
         return super().__new__(cls, *args, **kwargs)
@@ -63,6 +64,7 @@ def _command_context_to_interaction(func):
 
 
 def command(name, aliases=None, **kwargs):
+    """A command.Command-like decorator that works alongside a slash command decorator"""
     def wrapper(func):
         wrapped_comm = _command_context_to_interaction(func.callback)
         wrapped_comm.func = func.callback
