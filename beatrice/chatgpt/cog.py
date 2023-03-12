@@ -33,34 +33,35 @@ class ChatGPT(Cog):
             await self.reply_to(message)
 
     async def reply_to(self, message: nextcord.Message):
-        from .prompts import prompt
-        budget = self.token_budget
-        log = []
-        raw_messages = [message]
-        async for before_message in message.channel.history(limit=10, before=message):
-            raw_messages.append(before_message)
-        for message in raw_messages:
-            if budget < 0:
-                break
-            if message.author == self.bot.user:
-                entry = {
-                    "role": "assistant",
-                    "content": message.content
-                }
-            else:
-                entry = {
-                    "role": "user",
-                    "content": f"{message.author.name}: {await self.sanitize_message(message)}"
-                }
-            budget -= len(self.enc.encode(entry["content"]))
-            log.insert(0, entry)
+        async with message.channel.typing():
+            from .prompts import prompt
+            budget = self.token_budget
+            log = []
+            raw_messages = [message]
+            async for before_message in message.channel.history(limit=10, before=message):
+                raw_messages.append(before_message)
+            for message in raw_messages:
+                if budget < 0:
+                    break
+                if message.author == self.bot.user:
+                    entry = {
+                        "role": "assistant",
+                        "content": message.content
+                    }
+                else:
+                    entry = {
+                        "role": "user",
+                        "content": f"{message.author.name}: {await self.sanitize_message(message)}"
+                    }
+                budget -= len(self.enc.encode(entry["content"]))
+                log.insert(0, entry)
 
-        log.insert(0, {"role": "system", "content": prompt})
-        completion = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=log)
-        result = completion.choices[0].message.content
-        if result.startswith("Beatrice:"):
-            result = result[len("Beatrice:"):].lstrip()
-        await message.channel.send(result)
+            log.insert(0, {"role": "system", "content": prompt})
+            completion = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=log)
+            result = completion.choices[0].message.content
+            if result.startswith("Beatrice:"):
+                result = result[len("Beatrice:"):].lstrip()
+            await message.channel.send(result)
 
     async def sanitize_message(self, message: nextcord.Message):
         text = message.content
