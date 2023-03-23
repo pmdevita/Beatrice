@@ -33,3 +33,7 @@ class AudioFile:
         if self.title is not None and other.title is not None:
             return self.title == other.title
         return self.file == other.file
+
+    @property
+    def id(self):
+        return self._id

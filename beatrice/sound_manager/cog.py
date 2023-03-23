@@ -16,6 +16,10 @@ from nextcord import opus
 from .stats import RollingAverage
 from ..util.background_tasks import BackgroundTasks
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from .bot import SoundManagerBot
+
 if not opus.is_loaded():
     # print("loading opus...")
     opus._load_default()
@@ -24,7 +28,7 @@ from .source import AsyncFFmpegAudio, AsyncVoiceClient, AsyncEncoder
 
 
 class SoundManagerCog(commands.Cog, BackgroundTasks):
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: 'SoundManagerBot'):
         super().__init__()
         self.bot = bot
         self.guilds: dict[nextcord.Guild, 'GuildAudio'] = {}
@@ -171,18 +175,18 @@ class SoundManagerCog(commands.Cog, BackgroundTasks):
         # gc.collect()
 
     async def play_start_callback(self, audio_file: AudioFile):
-        if audio_file._id is not None:
+        if audio_file.id is not None:
             await self.bot.send_command({
                 "command": "play_start",
-                "id": audio_file._id
+                "id": audio_file.id
             })
 
     async def play_end_callback(self, audio_file: AudioFile):
         await self.file_manager.preload()
-        if audio_file._id is not None:
+        if audio_file.id is not None:
             await self.bot.send_command({
                 "command": "play_end",
-                "id": audio_file._id
+                "id": audio_file.id
             })
 
     async def pause_callback(self, is_paused: bool, guild: nextcord.Guild, channel: str):
