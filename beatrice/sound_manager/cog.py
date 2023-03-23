@@ -85,13 +85,26 @@ class SoundManagerCog(commands.Cog, BackgroundTasks):
     async def register_playback(self, guild: 'GuildAudio', channel: nextcord.VoiceChannel):
         if guild not in self.playback_guilds:
             print("Registering playback for", guild)
-            connection = await channel.connect(cls=AsyncVoiceClient)
-            connection.encoder = AsyncEncoder(self.encode_thread_pool, self.bot.loop)
-            # connection = None
+            connection = await self.safe_connect_channel(channel)
             self.playback_guilds[guild] = GuildConnection(guild, channel, connection)
 
         if not self.playback_task:
             self.playback_task = asyncio.create_task(self.playback())
+
+    async def safe_connect_channel(self, channel: nextcord.VoiceChannel):
+        if channel.guild.me.voice:
+            print(f"{channel.guild} doesn't have a registered GuildAudio but is apparently connected?")
+            current_connection = None
+            for voice_client in self.bot.voice_clients:
+                if voice_client.channel == channel.guild.me.voice.channel:
+                    current_connection = voice_client
+            if channel.guild.me.voice.channel == channel:
+                return current_connection
+            else:
+                await current_connection.disconnect(force=True)
+        connection = await channel.connect(cls=AsyncVoiceClient)
+        connection.encoder = AsyncEncoder(self.encode_thread_pool, self.bot.loop)
+        return connection
 
     async def unregister_playback(self, guild):
         if guild in self.playback_guilds:
@@ -100,7 +113,8 @@ class SoundManagerCog(commands.Cog, BackgroundTasks):
             del self.playback_guilds[guild]
 
     @commands.Cog.listener("on_voice_state_update")
-    async def on_voice_state_update(self, member: nextcord.Member, before: nextcord.VoiceState, after: nextcord.VoiceState):
+    async def on_voice_state_update(self, member: nextcord.Member, before: nextcord.VoiceState,
+                                    after: nextcord.VoiceState):
         guild = member.guild
         guild_manager = self.guilds.get(guild)
         if guild_manager:
@@ -292,7 +306,7 @@ class GuildAudio(nextcord.AudioSource):
         self.config = config
         self.voice_channel = None
         self.channels = {}
-        self._stay_in_channel = False    # Stay in voice channel until dismissed or channel empties
+        self._stay_in_channel = False  # Stay in voice channel until dismissed or channel empties
         for channel in self.config["channels"]:
             self.channels[channel] = AudioChannel(self)
 
@@ -308,7 +322,7 @@ class GuildAudio(nextcord.AudioSource):
             for channel in self.channels.values():
                 await channel.stop()
         self._paused = False
-        self._stay_in_channel = False   # Update like this because we're going to update play later ourselves
+        self._stay_in_channel = False  # Update like this because we're going to update play later ourselves
         await self._update_play()
 
     async def queue_file(self, voice_channel: nextcord.VoiceChannel, audio_channel: str, audio_file: AudioFile,
@@ -352,13 +366,11 @@ class GuildAudio(nextcord.AudioSource):
         self.manager.start_background_task(self._update_play())
 
     async def _update_play(self, unregister=True):
-        print("updatingplay")
         if self.stay_in_channel:
             await self.manager.register_playback(self, self.voice_channel)
             return
         if not self._paused:
             for channel in self.channels.values():
-                print(channel.is_playing())
                 if channel.is_playing():
                     self._playing = True
                     await self.manager.register_playback(self, self.voice_channel)
