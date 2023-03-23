@@ -15,7 +15,7 @@ class AsyncFileManager(BackgroundTasks):
         super().__init__()
         self.cache_path = cache_path
         self.max_preload = max_preload
-        self.session = aiohttp.ClientSession()
+        self.session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=60*60*5))
         self.files = []
 
     async def open(self, audio_file: AudioFile):
