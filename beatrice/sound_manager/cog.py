@@ -245,7 +245,8 @@ class GuildConnection:
     buffer: typing.Optional[bytes] = None
 
     def __post_init__(self):
-        self.send_audio_packet = self._send_audio_packet
+        # 3/23/2023 - Doesn't seem to start properly without doing this now?
+        self.send_audio_packet = self._reset_speaking
 
     async def _send_audio_packet(self, data):
         return await self.connection.actually_send_audio_packet(data)
