@@ -36,7 +36,7 @@ RESPONSES = [
     "Hey {members}, you should probably start winding down.",
     "{members} are you almost done?",
     "{members} OK party is over!",
-    "Go to bed {members}. Go directly to bed. Do not check your phone. Do not respond to this message."
+    "Go to bed {members}. Go directly to bed. Do not check your phone. Do not respond to this message.",
     "Uhh... hey {members}, what are you still doing here?",
     "{members} I told you to go to sleep a while ago, what are you doing?",
     "I'm going to be very cross with you {members}!",

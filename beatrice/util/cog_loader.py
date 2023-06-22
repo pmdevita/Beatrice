@@ -20,7 +20,7 @@ class CogPermissions:
 # Layer between the Bot and Cog to handle permissions for the Cog
 class BotFilter:
     def __init__(self, bot: Bot, perms: CogPermissions):
-        self.__bot = bot
+        self.__bot: Bot = bot
         self.__perms = perms
         self.__cog = None
 
@@ -53,9 +53,19 @@ class BotFilter:
 
     # Intercept inject calls to pass the BotFilter instance instead of the Bot
     def _inject_bot(self, bot: BotBase):
-        if not self.__perms.all_guilds:
-            for app_command in self.__cog.application_commands:
-               app_command.guild_ids_to_rollout = self.__perms.guilds
+        # In order to improve responsiveness, we aren't using globally registered commands
+
+        # Precalculate a set of all guild IDs if we need it
+        # all_guilds_ids = AllGuildsSet(self.__bot)
+
+        # Inject guilds IDs into registered slash commands
+        # if not self.__perms.all_guilds:
+        for app_command in self.__cog.application_commands:
+            # all_guilds_ids if self.__perms.all_guilds else
+            if self.__perms.all_guilds:
+                app_command.force_global = True
+            else:
+                app_command.guild_ids_to_rollout = self.__perms.guilds
 
         return self.__cog._real_inject(self)
 
@@ -82,6 +92,26 @@ class BotFilter:
                 return await func(*args)
         return wrapper
 
+
+class AllGuildsSet:
+    """Dynamically returns the set of all guilds"""
+    def __init__(self, bot: Bot):
+        self.bot = bot
+        self.index = None
+
+    def __iter__(self):
+        self.index = 0
+        if len(self.bot.guilds) == 0:
+            print("Warning, didn't load guilds yet!")
+        return self
+
+    def __next__(self):
+        if self.index < len(self.bot.guilds):
+            guild = self.bot.guilds[self.index]
+            self.index += 1
+            return guild
+        else:
+            raise StopIteration()
 
 class CogLoader:
     def __init__(self, bot: Bot, file_path):
