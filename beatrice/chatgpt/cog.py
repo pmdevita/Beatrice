@@ -1,5 +1,6 @@
 import nextcord
 import openai
+from groq import AsyncGroq
 from anthropic import AsyncAnthropic
 import tiktoken
 from beatrice.util.slash_compat import Cog
@@ -91,6 +92,22 @@ class ChatGPT(AIChat):
         completion = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=messages)
         result = completion.choices[0].message.content
         return result
+
+
+class Groq(AIChat):
+    def __init__(self, bot: "DiscordBot"):
+        super().__init__(bot)
+        self.enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        self.client = AsyncGroq(api_key=bot.config["groq"]["key"])
+        self.model = bot.config["groq"]["model"]
+        self.token_budget = bot.config["groq"]["token_budget"]
+
+    async def count_tokens(self, text: str) -> int:
+        return len(self.enc.encode(text))
+
+    async def inference(self, messages: list[dict]) -> str:
+        message = await self.client.chat.completions.create(model=self.model, messages=messages, max_tokens=300)
+        return message.choices[0].message.content
 
 
 class Anthropic(AIChat):
