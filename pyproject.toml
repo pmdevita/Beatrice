@@ -27,6 +27,7 @@ Brotli = { version = "^1.0.9", optional = true }
 cchardet = { version = "^2.1.7", optional = true }
 openai = "^0.27"
 tiktoken = "^0.4"
+anthropic = "^0.18.1"
 
 [tool.poetry.dev-dependencies]
 

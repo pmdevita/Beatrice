@@ -1,22 +1,28 @@
 import nextcord
 import openai
+from anthropic import AsyncAnthropic
 import tiktoken
 from beatrice.util.slash_compat import Cog
 from nextcord.ext import commands
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
     from beatrice.main import DiscordBot
 
 
-class ChatGPT(Cog):
+class AIChat(Cog):
     def __init__(self, bot: "DiscordBot"):
         self.bot = bot
-        self.enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
-        openai.api_key = bot.config["chat_gpt"]["key"]
         self.token_budget = int(bot.config["chat_gpt"].get("token_budget", 700))
 
     async def __async_init__(self):
-        openai.aiosession.set(self.bot.session)
+        pass
+
+    async def count_tokens(self, text: str) -> int:
+        raise NotImplementedError
+
+    async def inference(self, messages: list[dict]) -> str:
+        raise NotImplementedError
 
     @commands.Cog.listener("on_message")
     async def on_message(self, message: nextcord.Message, *args):
@@ -35,7 +41,7 @@ class ChatGPT(Cog):
         async with message.channel.typing():
             from .prompts import prompt
             budget = self.token_budget
-            budget -= len(self.enc.encode(prompt))
+            budget -= self.count_tokens(prompt)
             log = []
             raw_messages = [message]
             async for before_message in message.channel.history(limit=10, before=message):
@@ -53,12 +59,11 @@ class ChatGPT(Cog):
                         "role": "user",
                         "content": f"{message.author.name}: {await self.sanitize_message(message)}"
                     }
-                budget -= len(self.enc.encode(entry["content"]))
+                budget -= self.count_tokens(entry["content"])
                 log.insert(0, entry)
 
             log.insert(0, {"role": "system", "content": prompt})
-            completion = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=log)
-            result = completion.choices[0].message.content
+            result = await self.inference(log)
             if result.startswith("Beatrice:"):
                 result = result[len("Beatrice:"):].lstrip()
             await message.channel.send(result)
@@ -69,3 +74,37 @@ class ChatGPT(Cog):
             text = text.replace(f"<@{mention.id}>", mention.name)
         return text
 
+
+class ChatGPT(AIChat):
+    def __init__(self, bot: "DiscordBot"):
+        super().__init__(bot)
+        self.enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        openai.api_key = bot.config["chat_gpt"]["key"]
+
+    def __async_init__(self):
+        openai.aiosession.set(self.bot.session)
+
+    async def count_tokens(self, text: str) -> int:
+        return len(self.enc.encode(text))
+
+    async def inference(self, messages: list[dict]) -> str:
+        completion = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=messages)
+        result = completion.choices[0].message.content
+        return result
+
+
+class Anthropic(AIChat):
+    def __init__(self, bot: "DiscordBot"):
+        super().__init__(bot)
+        self.enc = tiktoken.encoding_for_model("gpt-3.5-turbo")
+        self.anthropic = AsyncAnthropic(api_key=bot.config["anthropic"]["key"])
+        self.model = "claude-3-haiku-20240229"
+
+    async def count_tokens(self, text: str) -> int:
+        # Does not give an accurate result for newer models, you have to
+        # get a response from the API for that :/
+        return await self.anthropic.count_tokens(text)
+
+    async def inference(self, messages: list[dict]) -> str:
+        message = await self.anthropic.messages.create(model=self.model, messages=messages, max_tokens=300)
+        return message.content[0].text
