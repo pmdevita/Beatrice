@@ -1,6 +1,16 @@
 import asyncio
 import multiprocessing.connection
+import os
 import traceback
+# We need to bootstrap this before the bot loads Nextcord
+# Some platforms (Alpine) need to provide a path because
+# find_library will fail on them (musl).
+# https://github.com/python/cpython/pull/18380
+from nextcord import opus
+opus_path = os.getenv("OPUS_PATH", None)
+if opus_path:
+    opus.load_opus(opus_path)
+
 from nextcord.ext import commands
 from beatrice.util.background_tasks import BackgroundTasks
 try:
