@@ -1,4 +1,5 @@
 import concurrent.futures
+import traceback
 
 import nextcord
 from nextcord.ext import commands
@@ -7,18 +8,23 @@ from beatrice.sound_manager import AudioFile, SoundManager
 
 
 def _run_youtubedl(link):
-    yt = YoutubeDL({"quiet": True, "no_warnings": True})
-    selector = yt.build_format_selector("ba/b")
-    info = yt.extract_info(link, process=False, download=False)
-    # Probably won't evaluate if this happens???
-    if "formats" not in info:
-        return None, None
-    video = yt.process_ie_result(info, download=False)
     try:
-        format = list(selector(video))
-        return format, info
-    except KeyError:
-        print("Error obtaining video")
+        yt = YoutubeDL({"quiet": True, "no_warnings": True})
+        selector = yt.build_format_selector("ba/b")
+        info = yt.extract_info(link, process=False, download=False)
+        # Probably won't evaluate if this happens???
+        if "formats" not in info:
+            return None, None
+        video = yt.process_ie_result(info, download=False)
+        try:
+            format = list(selector(video))
+            return format, info
+        except KeyError:
+            print("Error obtaining video")
+            return None, None
+    except:
+        traceback.print_exc()
+        print("Big error obtaining video")
         return None, None
 
 
@@ -32,7 +38,7 @@ class AudioQueue(dict):
 class Youtube(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.ppe = concurrent.futures.ProcessPoolExecutor()
+        self.ppe = concurrent.futures.ThreadPoolExecutor()
         self.text_channels = {}
         self.sound_manager = None
         self.queue = AudioQueue()
@@ -60,6 +66,7 @@ class Youtube(commands.Cog):
         if guild:
             guild = guild.id
         format, info = await self.bot.loop.run_in_executor(self.ppe, _run_youtubedl, link)
+        # format, info = _run_youtubedl(link)
         if format is None and info is None:
             return None
         if "uploader" in info:

@@ -1,5 +1,5 @@
-from .cog import Groq
+from .cog import Anthropic as AICog
 
 
 def setup(bot):
-    bot.add_cog(Groq(bot))
+    bot.add_cog(AICog(bot))
