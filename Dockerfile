@@ -12,7 +12,7 @@ RUN /app/bin/pip install dist/`ls dist | grep .whl`[mysql,uvloop,speed,audio] --
 
 FROM python:3.10-alpine
 RUN apk add bash
-RUN apk add blas opusfile ffmpeg libsodium # needed for audio
+RUN apk add blas opus opusfile ffmpeg libsodium # needed for audio
 RUN apk add libuv
 COPY --from=builder /app /app
 WORKDIR /config
