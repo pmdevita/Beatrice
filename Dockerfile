@@ -14,6 +14,8 @@ FROM python:3.10-alpine
 RUN apk add bash
 RUN apk add blas opus-dev ffmpeg libsodium # needed for audio
 RUN apk add libuv
+# Python can't find_library with musl gh-65921
+ENV OPUS_PATH=/usr/lib/libopus.so
 COPY --from=builder /app /app
 WORKDIR /config
 CMD ["/app/bin/beatrice"]

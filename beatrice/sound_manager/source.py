@@ -9,7 +9,7 @@ import typing
 import os
 import nextcord
 from nextcord import opus
-from nextcord.opus import Encoder, _lib, c_int16_ptr
+from nextcord.opus import Encoder, _lib, c_int16_ptr, _OpusStruct, OpusNotLoaded
 from .async_file import AsyncFile
 
 
@@ -191,6 +191,17 @@ class AsyncVoiceClient(nextcord.VoiceClient):
 
 class AsyncEncoder(Encoder):
     def __init__(self, executor, loop: asyncio.AbstractEventLoop):
+        # Some platforms (Alpine) need to provide a path because
+        # find_library will fail on them (musl).
+        # https://github.com/python/cpython/pull/18380
+        try:
+            _OpusStruct.get_opus_version()
+        except OpusNotLoaded as e:
+            opus_path = os.getenv("OPUS_PATH", None)
+            if opus_path:
+                opus.load_opus(opus_path)
+            else:
+                raise e
         super().__init__()
         self.executor = executor
         self.loop = loop
