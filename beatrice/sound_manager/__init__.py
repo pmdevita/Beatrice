@@ -45,6 +45,7 @@ class SoundManager(commands.Cog, BackgroundTasks):
         return temp
 
     def start_bot(self):
+        multiprocessing.set_start_method("spawn")
         self.process = multiprocessing.Process(target=start_bot, args=(self.bot_config, self.chpipe))
         self.process.start()
 
