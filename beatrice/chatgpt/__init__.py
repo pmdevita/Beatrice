@@ -1,4 +1,4 @@
-from .cog import Anthropic as AICog
+from .cog import Groq as AICog
 
 
 def setup(bot):
