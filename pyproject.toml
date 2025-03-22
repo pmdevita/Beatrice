@@ -28,7 +28,7 @@ cchardet = { version = "^2.1.7", optional = true }
 openai = "^0.27"
 tiktoken = "^0.4"
 anthropic = "^0.18.1"
-groq = "^0.4.2"
+groq = "^0.20.0"
 
 [tool.poetry.dev-dependencies]
 
