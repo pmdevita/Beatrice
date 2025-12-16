@@ -163,15 +163,15 @@ speedups = ["Brotli ; platform_python_implementation == \"CPython\"", "aiodns (>
 
 [[package]]
 name = "aiomysql"
-version = "0.1.1"
+version = "0.3.0"
 description = "MySQL driver for asyncio."
 optional = true
-python-versions = ">=3.7"
+python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"mysql\""
 files = [
-    {file = "aiomysql-0.1.1-py3-none-any.whl", hash = "sha256:b66fa1481ca71c5ee0d933ec3abf51f6136543a3710ba80b134eb33da7ed6f13"},
-    {file = "aiomysql-0.1.1.tar.gz", hash = "sha256:0d686c4fdae6b67d1825d8be60fa3b0e644fca2c84d3c936d850fc259c8e107e"},
+    {file = "aiomysql-0.3.0-py3-none-any.whl", hash = "sha256:448b31e0d11b6e8dd6e8356b7f39cec0e44293b2c6e368c9e8eeeaff77b3cbec"},
+    {file = "aiomysql-0.3.0.tar.gz", hash = "sha256:9e850677d456dc4fea59ad871d4bcdb6adbce02326aaa32a97a43125256f23de"},
 ]
 
 [package.dependencies]
@@ -179,7 +179,7 @@ PyMySQL = ">=1.0"
 
 [package.extras]
 rsa = ["PyMySQL[rsa] (>=1.0)"]
-sa = ["sqlalchemy (>=1.0,<1.4)"]
+sa = ["sqlalchemy (>=1.3,<1.4)"]
 
 [[package]]
 name = "aiosignal"
@@ -2599,4 +2599,4 @@ uvloop = ["uvloop"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "7cb65b599ffd8667c9019a432207bdd6be5b04d5d3f98cafd3d56a45518c25a5"
+content-hash = "5294190384ad979e7b19d7f89208ec8317a0fb5169aeb95f05b35b15ad4751ed"
